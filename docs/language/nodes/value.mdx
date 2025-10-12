@@ -1,0 +1,516 @@
+---
+title: Value Node
+description: Create static and dynamic data instances that conform to Wolf DSL schemas
+sidebar_position: 5
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Value Node
+
+**Value nodes** create data instances that conform to defined schemas. They can contain static data, dynamic expressions, or a combination of both, providing the initial data and constants needed for your Wolf DSL flows.
+
+## Syntax
+
+```flow
+value [valueName] -> [SchemaName] {
+    [fieldAssignments]
+}
+```
+
+### Parameters
+
+- **`valueName`**: Identifier for the value instance
+- **`SchemaName`**: Reference to the schema this value conforms to
+- **`fieldAssignments`**: Field values using static data or expressions
+
+## Static Values
+
+The simplest values contain static data:
+
+```flow
+Schema User {
+    string id
+    string name
+    string email
+    boolean isActive
+}
+
+value defaultUser -> User {
+    id: "user-001"
+    name: "John Doe"
+    email: "john.doe@example.com"
+    isActive: true
+}
+```
+
+## Dynamic Values with Expressions
+
+Use expressions (`${}`) to create dynamic values:
+
+```flow
+Schema Order {
+    string orderId
+    string customerId
+    string createdAt
+    number totalAmount
+    string status
+}
+
+value newOrder -> Order {
+    orderId: ${"ORDER-" + uuid()}
+    customerId: ${"CUST-" + currentDate("yyyyMMdd")}
+    createdAt: ${currentDate("yyyy-MM-dd HH:mm:ss")}
+    totalAmount: ${0.00}
+    status: "pending"
+}
+```
+
+## Complex Nested Values
+
+Values can contain nested objects and arrays:
+
+<Tabs>
+<TabItem value="nested" label="Nested Objects">
+
+```flow
+Schema CustomerProfile {
+    string id
+    personalInfo {
+        string firstName
+        string lastName
+        string email
+    }
+    preferences {
+        string language
+        boolean notifications
+    }
+}
+
+value customerProfile -> CustomerProfile {
+    id: ${uuid()}
+    personalInfo: {
+        firstName: "Alice"
+        lastName: "Johnson"
+        email: ${"alice.johnson+" + uuid() + "@example.com"}
+    }
+    preferences: {
+        language: "en-US"
+        notifications: true
+    }
+}
+```
+
+</TabItem>
+<TabItem value="arrays" label="Arrays">
+
+```flow
+Schema ProductCatalog {
+    string catalogId
+    string[] categories
+    products [
+        string id
+        string name
+        number price
+    ]
+}
+
+value sampleCatalog -> ProductCatalog {
+    catalogId: "CAT-001"
+    categories: ["electronics", "computers", "accessories"]
+    products: [
+        {
+            id: "PROD-001"
+            name: "Laptop"
+            price: 999.99
+        },
+        {
+            id: "PROD-002" 
+            name: "Mouse"
+            price: 29.99
+        }
+    ]
+}
+```
+
+</TabItem>
+</Tabs>
+
+## Configuration-Driven Values
+
+Combine static data with configuration for environment-specific values:
+
+```flow
+Schema DatabaseConfig {
+    string host
+    number port
+    string database
+    string username
+    boolean ssl
+}
+
+value dbConfig -> DatabaseConfig {
+    host: ${@Config("db.host")}
+    port: ${@Config("db.port")}
+    database: "wolf_dsl_app"
+    username: ${@Config("db.username")}
+    ssl: true
+}
+```
+
+## Computed Values
+
+Create values with computed fields:
+
+```flow
+Schema PricingInfo {
+    number basePrice
+    number taxRate
+    number discountPercent
+    number finalPrice
+    string currency
+    string formattedPrice
+}
+
+value productPricing -> PricingInfo {
+    basePrice: 100.00
+    taxRate: 0.08
+    discountPercent: 10.0
+    finalPrice: ${(basePrice * (1 - discountPercent/100)) * (1 + taxRate)}
+    currency: "USD"
+    formattedPrice: ${"$" + currencyFormat(finalPrice, "DECIMAL")}
+}
+```
+
+## Real-World Examples
+
+### API Request Template
+
+```flow
+Schema ApiRequest {
+    string endpoint
+    string method
+    headers {
+        string authorization
+        string contentType
+        string userAgent
+    }
+    metadata {
+        string requestId
+        string timestamp
+        string version
+    }
+}
+
+value apiRequest -> ApiRequest {
+    endpoint: "/api/v1/users"
+    method: "GET"
+    headers: {
+        authorization: ${"Bearer " + @Config("api.token")}
+        contentType: "application/json"
+        userAgent: "WolfDSL/1.0"
+    }
+    metadata: {
+        requestId: ${uuid()}
+        timestamp: ${currentDate("yyyy-MM-dd'T'HH:mm:ss'Z'")}
+        version: "v1"
+    }
+}
+```
+
+### Default User Profile
+
+```flow
+Schema UserProfile {
+    string userId
+    string displayName
+    string email
+    preferences {
+        string theme
+        string language
+        string timezone
+        notifications {
+            boolean email
+            boolean push
+            boolean sms
+        }
+    }
+    metadata {
+        string createdAt
+        string lastUpdatedAt
+        string source
+    }
+}
+
+value defaultProfile -> UserProfile {
+    userId: ${uuid()}
+    displayName: "New User"
+    email: ${"user+" + uuid() + "@example.com"}
+    preferences: {
+        theme: ${@Config("app.default.theme")}
+        language: "en-US"
+        timezone: ${@Config("app.default.timezone")}
+        notifications: {
+            email: true
+            push: true
+            sms: false
+        }
+    }
+    metadata: {
+        createdAt: ${currentDate("yyyy-MM-dd'T'HH:mm:ss'Z'")}
+        lastUpdatedAt: ${currentDate("yyyy-MM-dd'T'HH:mm:ss'Z'")}
+        source: "wolf-dsl"
+    }
+}
+```
+
+### Test Data Sets
+
+<Tabs>
+<TabItem value="valid" label="Valid Test Data">
+
+```flow
+Schema TestUser {
+    string id
+    string name
+    string email
+    number age
+    boolean isActive
+}
+
+value validTestUser -> TestUser {
+    id: "test-user-001"
+    name: "Test User"
+    email: "test@example.com"
+    age: 25
+    isActive: true
+}
+```
+
+</TabItem>
+<TabItem value="edge" label="Edge Case Data">
+
+```flow
+value edgeCaseUser -> TestUser {
+    id: ""  // Empty string
+    name: ${"User with " + length("very long name") + " chars"}
+    email: "edge.case+special.chars@sub.domain.example.com"
+    age: 0
+    isActive: false
+}
+```
+
+</TabItem>
+<TabItem value="random" label="Random Test Data">
+
+```flow
+value randomTestUser -> TestUser {
+    id: ${"test-" + uuid()}
+    name: ${"User " + uuid()}
+    email: ${"test+" + uuid() + "@example.com"}
+    age: ${18 + (uuid() % 50)}  // Age between 18-67
+    isActive: ${uuid() % 2 == 0}  // Randomly true/false
+}
+```
+
+</TabItem>
+</Tabs>
+
+### Environment-Specific Configuration
+
+```flow
+Schema EnvironmentConfig {
+    string environment
+    string logLevel
+    boolean debugMode
+    services {
+        string authServiceUrl
+        string dataServiceUrl
+        number defaultTimeout
+    }
+    features {
+        boolean enableCaching
+        boolean enableMetrics
+        boolean enableExperiments
+    }
+}
+
+value envConfig -> EnvironmentConfig {
+    environment: ${@Config("app.environment")}
+    logLevel: ${@Config("log.level")}
+    debugMode: ${@Config("app.environment") == "development"}
+    services: {
+        authServiceUrl: ${@Config("auth.service.url")}
+        dataServiceUrl: ${@Config("data.service.url")}
+        defaultTimeout: ${@Config("service.timeout")}
+    }
+    features: {
+        enableCaching: ${@Config("feature.caching.enabled")}
+        enableMetrics: ${@Config("feature.metrics.enabled")}
+        enableExperiments: ${@Config("app.environment") != "production"}
+    }
+}
+```
+
+## Expression Capabilities
+
+Values support the full Wolf DSL expression system:
+
+### String Operations
+```flow
+value stringExample -> StringData {
+    concatenated: ${"Hello, " + "World!"}
+    uppercase: ${upperCase("wolf dsl")}
+    formatted: ${"Order #" + orderId + " - " + status}
+}
+```
+
+### Date/Time Functions
+```flow
+value timeExample -> TimeData {
+    now: ${currentDate("yyyy-MM-dd HH:mm:ss")}
+    timestamp: ${currentDate("ms")}
+    formatted: ${dateFormat("ms", "MMM dd, yyyy", timestamp)}
+    futureDate: ${addToDate(now, "yyyy-MM-dd", 30, "Days")}
+}
+```
+
+### Collection Operations
+```flow
+value collectionExample -> CollectionData {
+    filteredItems: ${filter(allItems, item -> item.active == true)}
+    itemCount: ${length(filteredItems)}
+    firstItem: ${filteredItems[0]}
+    itemNames: ${map(filteredItems, item -> item.name)}
+}
+```
+
+### Conditional Logic
+```flow
+value conditionalExample -> ConditionalData {
+    status: ${if age >= 18 then "adult" else "minor"}
+    discount: ${if isPremium == true then 0.15 else 0.05}
+    message: ${if score > 90 then "Excellent" else if score > 70 then "Good" else "Needs Improvement"}
+}
+```
+
+## Best Practices
+
+### 1. Use Meaningful Names
+Choose descriptive names for values:
+
+```flow
+//  Good: Descriptive names
+value defaultUserProfile -> UserProfile { ... }
+value productionApiConfig -> ApiConfig { ... }
+value testOrderData -> Order { ... }
+
+//  Avoid: Generic names
+value data1 -> UserProfile { ... }
+value config -> ApiConfig { ... }
+value test -> Order { ... }
+```
+
+### 2. Group Related Values
+Organize values by purpose or domain:
+
+```flow
+//  Good: Grouped by domain
+value defaultCustomer -> Customer { ... }
+value premiumCustomer -> Customer { ... }
+value corporateCustomer -> Customer { ... }
+
+value devConfig -> AppConfig { ... }
+value stagingConfig -> AppConfig { ... }
+value prodConfig -> AppConfig { ... }
+```
+
+### 3. Use Configuration for Environment Data
+Externalize environment-specific values:
+
+```flow
+//  Good: Uses configuration
+value apiEndpoints -> ServiceConfig {
+    authUrl: ${@Config("auth.service.url")}
+    dataUrl: ${@Config("data.service.url")}
+    timeout: ${@Config("service.timeout")}
+}
+
+//  Avoid: Hardcoded environment data
+value apiEndpoints -> ServiceConfig {
+    authUrl: "https://auth.prod.example.com"
+    dataUrl: "https://data.prod.example.com"
+    timeout: 5000
+}
+```
+
+### 4. Validate Expression Results
+Ensure expressions produce expected data types:
+
+```flow
+//  Good: Clear expression intent
+value userMetrics -> UserMetrics {
+    totalUsers: ${length(users)}  // Returns number
+    isHighTraffic: ${totalUsers > 1000}  // Returns boolean
+    lastUpdated: ${currentDate("yyyy-MM-dd")}  // Returns string
+}
+```
+
+### 5. Document Complex Expressions
+Add comments for complex logic:
+
+```flow
+value pricingCalculation -> PricingInfo {
+    // Calculate final price with bulk discount and tax
+    finalPrice: ${
+        basePrice * 
+        (1 - (quantity > 100 ? 0.1 : 0)) *  // 10% bulk discount
+        (1 + taxRate)                       // Add tax
+    }
+}
+```
+
+## Common Patterns
+
+### Default Values for Optional Fields
+```flow
+value userWithDefaults -> UserProfile {
+    id: ${uuid()}
+    name: ${@Config("user.default.name")}
+    theme: ${@Config("ui.default.theme")}
+    language: "en-US"
+}
+```
+
+### Template Values for Testing
+```flow
+value testTemplate -> TestCase {
+    id: ${"test-" + testName}
+    description: ${"Test case for " + testName}
+    expectedResult: ${expectedValue}
+    createdBy: "automated-test"
+}
+```
+
+### Factory Pattern for Data Creation
+```flow
+value orderFactory -> OrderTemplate {
+    orderId: ${"ORD-" + currentDate("yyyyMMdd") + "-" + uuid()}
+    createdAt: ${currentDate("yyyy-MM-dd'T'HH:mm:ss'Z'")}
+    status: "pending"
+    total: 0.00
+}
+```
+
+## Related Topics
+
+- **[Schema Node](schema)** - Defining the structure that values must conform to
+- **[Mapping Node](mapping)** - Transforming values and creating derived data
+- **[Expression System](/language/expressions)** - Using expressions in value definitions
+- **[Functions Reference](/language/functions)** - Available functions for expressions
+- **[Installation Guide](/getting-started/installation)** - Using `@Config()` in values
+
+---
+
+*Value nodes provide the data foundation for Wolf DSL flows, combining static initialization with dynamic expression evaluation.*

@@ -1,0 +1,567 @@
+---
+title: Schema Node  
+description: Define data structures and type systems for Wolf DSL flows
+sidebar_position: 4
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Schema Node
+
+**Schema nodes** are the foundation of Wolf DSL's type system. They define data models that ensure type safety, enable validation, and provide structure for all data flowing through your Wolf DSL applications.
+
+## Why Schemas Matter
+
+- **Type Safety**: Catch data structure errors at compile time
+- **Documentation**: Self-documenting data contracts
+- **Validation**: Automatic validation of data conformance
+- **IDE Support**: Better autocomplete and error detection
+- **Interoperability**: Clear contracts between services and transformations
+
+## Syntax
+
+```flow
+Schema [schemaName] {
+    [fieldDefinitions]
+}
+```
+
+### Supported Types
+
+Wolf DSL schemas support:
+
+- **Primitive types**: `string`, `number`, `boolean`
+- **Complex objects**: Using `{ curly braces }`
+- **Arrays**: Using `[ square brackets ]` or `[]` suffix
+- **Schema references**: Using `->` pointer syntax
+- **Optional fields**: All fields are optional by default
+
+## Basic Examples
+
+### Simple Schema
+
+```flow
+Schema User {
+    string id
+    string name
+    string email
+    number age
+    boolean isActive
+}
+```
+
+### Nested Objects
+
+```flow
+Schema Employee {
+    number employeeId
+    personalInfo {
+        string firstName
+        string lastName
+        number age
+        boolean isMarried
+        spouse {
+            string spouseName
+            number spouseAge
+        }
+    }
+}
+```
+
+### Arrays
+
+<Tabs>
+<TabItem value="inline" label="Inline Array">
+
+```flow
+Schema Order {
+    string orderId
+    items [
+        string productId
+        string productName
+        number quantity
+        number price
+    ]
+}
+```
+
+</TabItem>
+<TabItem value="typed" label="Typed Array">
+
+```flow
+Schema Product {
+    string id
+    string name
+    number price
+}
+
+Schema Order {
+    string orderId
+    Product[] products  // Array of Product schema
+    string[] tags       // Array of strings
+}
+```
+
+</TabItem>
+</Tabs>
+
+## Advanced Patterns
+
+### Schema References
+
+Use `->` to reference other schemas:
+
+```flow
+Schema Address {
+    string street
+    string city
+    string state
+    string zipCode
+    string country
+}
+
+Schema Company {
+    string name
+    string taxId
+    Address headquarters -> Address
+    Address[] locations -> Address
+}
+
+Schema Employee {
+    string id
+    string name
+    Company employer -> Company
+    Address homeAddress -> Address
+}
+```
+
+### Complex Nested Structure
+
+```flow
+Schema CustomerProfile {
+    string customerId
+    personalDetails {
+        string firstName
+        string lastName
+        string email
+        string phone
+        demographics {
+            number age
+            string gender
+            string maritalStatus
+            number[] dependentAges
+        }
+    }
+    addresses [
+        string type  // "home", "work", "billing"
+        string street
+        string city
+        string state
+        string zipCode
+        boolean isPrimary
+    ]
+    preferences {
+        string language
+        string currency
+        string timezone
+        notifications {
+            boolean email
+            boolean sms
+            boolean push
+        }
+    }
+    accountHistory {
+        string createdDate
+        string lastLoginDate
+        number loginCount
+        string[] previousEmails
+    }
+}
+```
+
+### E-commerce Schema System
+
+```flow
+Schema Category {
+    string id
+    string name
+    string description
+    Category[] subcategories -> Category
+}
+
+Schema Product {
+    string id
+    string name
+    string description
+    number basePrice
+    string[] images
+    Category category -> Category
+    attributes [
+        string name
+        string value
+        string type  // "string", "number", "boolean"
+    ]
+    inventory {
+        number stockQuantity
+        string status  // "in_stock", "low_stock", "out_of_stock"
+        string warehouseLocation
+    }
+}
+
+Schema Customer {
+    string id
+    string email
+    string firstName
+    string lastName
+    string phone
+    addresses [
+        string type
+        string street
+        string city
+        string state
+        string zipCode
+        boolean isDefault
+    ]
+    paymentMethods [
+        string type  // "credit_card", "paypal", "bank_transfer"
+        string identifier
+        string displayName
+        boolean isDefault
+    ]
+}
+
+Schema OrderItem {
+    Product product -> Product
+    number quantity
+    number unitPrice
+    number totalPrice
+}
+
+Schema Order {
+    string orderId
+    Customer customer -> Customer
+    OrderItem[] items -> OrderItem
+    pricing {
+        number subtotal
+        number taxAmount
+        number shippingCost
+        number discountAmount
+        number totalAmount
+    }
+    shipping {
+        string method
+        string trackingNumber
+        string estimatedDelivery
+        Address deliveryAddress -> Address
+    }
+    status {
+        string current  // "pending", "processing", "shipped", "delivered"
+        string[] history
+        string createdAt
+        string updatedAt
+    }
+}
+```
+
+## Schema Usage Patterns
+
+### Request/Response Schemas
+
+Define clear contracts for service communication:
+
+```flow
+// Request schemas
+Schema CreateUserRequest {
+    string firstName
+    string lastName
+    string email
+    string department
+    string role
+}
+
+Schema UpdateUserRequest {
+    string userId
+    userData {
+        string firstName
+        string lastName  
+        string department
+        string role
+    }
+}
+
+// Response schemas
+Schema UserResponse {
+    string id
+    string firstName
+    string lastName
+    string email
+    string department
+    string role
+    string status
+    string createdAt
+    string updatedAt
+}
+
+Schema ErrorResponse {
+    string errorCode
+    string message
+    string[] details
+    string timestamp
+}
+```
+
+### Data Transformation Schemas
+
+Structure data for processing pipelines:
+
+```flow
+// Raw input schema
+Schema RawCustomerData {
+    string customer_id
+    string first_name
+    string last_name
+    string email_address
+    string phone_number
+    string street_address
+    string city_name
+    string state_code
+    string zip_code
+}
+
+// Processed output schema
+Schema ProcessedCustomer {
+    string id
+    personalInfo {
+        string firstName
+        string lastName
+        string email
+        string phone
+    }
+    address {
+        string street
+        string city
+        string state
+        string zipCode
+    }
+    metadata {
+        string processedAt
+        string source
+        boolean isValid
+    }
+}
+```
+
+### Configuration Schemas
+
+Define structure for application configuration:
+
+```flow
+Schema DatabaseConfig {
+    string host
+    number port
+    string database
+    string username
+    string password
+    connection {
+        number maxConnections
+        number timeoutMs
+        boolean ssl
+    }
+}
+
+Schema ServiceConfig {
+    string name
+    string version
+    string baseUrl
+    authentication {
+        string type  // "bearer", "basic", "api_key"
+        string token
+        string username
+        string password
+    }
+    settings {
+        number timeout
+        number retries
+        boolean verbose
+    }
+}
+
+Schema ApplicationConfig {
+    DatabaseConfig database -> DatabaseConfig
+    ServiceConfig[] services -> ServiceConfig
+    features {
+        boolean enableCaching
+        boolean enableLogging
+        boolean enableMetrics
+    }
+}
+```
+
+## Best Practices
+
+### 1. Use Descriptive Names
+Choose clear, meaningful names for schemas and fields:
+
+```flow
+//  Good: Clear, descriptive names
+Schema CustomerAccount {
+    string accountId
+    string primaryEmail
+    boolean isActiveSubscriber
+}
+
+//  Avoid: Generic or cryptic names  
+Schema Data {
+    string id
+    string val
+    boolean flag
+}
+```
+
+### 2. Group Related Fields
+Organize related fields into nested objects:
+
+```flow
+//  Good: Logical grouping
+Schema Employee {
+    string id
+    personalInfo {
+        string firstName
+        string lastName
+        string email
+    }
+    workInfo {
+        string department
+        string title
+        string managerId
+    }
+    compensation {
+        number salary
+        string currency
+        string[] benefits
+    }
+}
+
+//  Avoid: Flat structure for complex data
+Schema Employee {
+    string id
+    string firstName
+    string lastName
+    string email
+    string department
+    string title
+    string managerId
+    number salary
+    string currency
+    string[] benefits
+}
+```
+
+### 3. Use Schema References
+Reuse common structures across schemas:
+
+```flow
+//  Good: Reusable schemas
+Schema Address {
+    string street
+    string city
+    string state
+    string zipCode
+}
+
+Schema Customer {
+    string id
+    string name
+    Address billingAddress -> Address
+    Address shippingAddress -> Address
+}
+
+Schema Supplier {
+    string id
+    string companyName
+    Address headquarters -> Address
+}
+```
+
+### 4. Design for Evolution
+Structure schemas to accommodate future changes:
+
+```flow
+//  Good: Extensible design
+Schema ApiResponse {
+    string status
+    string message
+    data {
+        // Main response data goes here
+        string[] items
+    }
+    metadata {
+        string version
+        string timestamp
+        pagination {
+            number page
+            number limit
+            number total
+        }
+    }
+}
+```
+
+### 5. Consistent Naming Conventions
+Establish and follow consistent naming patterns:
+
+```flow
+//  Good: Consistent naming
+Schema OrderStatus {
+    string orderId          // camelCase for simple fields
+    string currentStatus    // camelCase for simple fields
+    statusHistory [         // camelCase for arrays
+        string status
+        string timestamp
+        string updatedBy
+    ]
+    trackingInfo {          // camelCase for objects
+        string trackingNumber
+        string carrier
+        boolean isDelivered
+    }
+}
+```
+
+## Validation and Type Safety
+
+Wolf DSL schemas provide compile-time validation:
+
+```flow
+Schema Product {
+    string id
+    string name
+    number price
+}
+
+//  Valid: Conforms to schema
+value validProduct -> Product {
+    id: "PROD-001"
+    name: "Widget"
+    price: 29.99
+}
+
+//  Invalid: Missing required structure
+value invalidProduct -> Product {
+    identifier: "PROD-001"  // Wrong field name
+    cost: "29.99"          // Wrong field name and type
+}
+```
+
+## Related Topics
+
+- **[Value Node](value)** - Creating data instances that conform to schemas
+- **[Mapping Node](mapping)** - Transforming data between different schemas  
+- **[Service Node](service)** - Using schemas for request/response typing
+- **[Language Grammar](/language/grammar)** - Understanding Wolf DSL's type system
+- **[Best Practices](/advanced/best-practices)** - Schema design and validation patterns
+
+---
+
+*Schemas form the backbone of Wolf DSL's type system, enabling safe, predictable data flow throughout your applications.*

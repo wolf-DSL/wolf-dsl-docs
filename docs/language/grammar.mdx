@@ -1,0 +1,727 @@
+---
+title: Grammar Reference
+description: Complete Wolf DSL grammar specification derived from the Xtext grammar
+sidebar_position: 3
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Wolf DSL Grammar Reference
+
+This page provides a complete grammar reference for Wolf DSL, derived directly from the Xtext grammar specification. Each section shows the grammar rule along with practical examples.
+
+:::info Grammar Source
+This reference is generated from [`Flow.xtext`](https://github.com/wolf-DSL/flow-language-spec/blob/main/com.intuit.dsl.flow.parent/com.intuit.dsl.flow/src/com/intuit/dsl/flow/Flow.xtext) and stays synchronized with the actual parser implementation.
+:::
+
+## Top-Level Model Structure
+
+### Model
+The root grammar rule that defines a complete Wolf DSL file:
+
+```ebnf
+Model:
+  query+=QueryDefinition*
+  type+=TypeSystemDefinition*
+  node+=Node*;
+```
+
+**Example:**
+```flow
+// GraphQL queries (optional)
+query GetUser {
+  user(id: $userId) {
+    name
+    email
+  }
+}
+
+// Type definitions (optional - usually inherited from GraphQL)
+type User {
+  id: ID!
+  name: String
+  email: String
+}
+
+// Wolf DSL nodes (main content)
+Schema UserSchema {
+  string name
+  string email
+}
+
+Flow userFlow {
+  // ... flow definition
+}
+```
+
+## Node Types
+
+### Node Definition
+All executable nodes inherit from this base definition:
+
+```ebnf
+Node returns graphql::ObjectTypeDefinition:
+  State | Schema;
+
+State:
+  Flow | Service | Mapping | SchemaAssignment | 
+  Rulebase | GraphQLService;
+```
+
+## Schema Definitions
+
+### Schema
+Defines data structure for type safety:
+
+```ebnf
+Schema:    
+  'Schema' id=AllowedKeyword '{'
+  schema=(Data)
+  '}';
+
+Data:
+  entity+=Entity+;
+
+Entity:
+  (annotation=Annotation)? name=AllowedKeyword op='{'
+    entity+=Entity*
+  '}'
+  |
+  (annotation=Annotation)? name=AllowedKeyword op='['
+    entity+=Entity+
+  ']'
+  |
+  (annotation=Annotation)? name=AllowedKeyword op='->' schema=[graphql::ObjectTypeDefinition]
+  |
+  (annotation=Annotation)? (type=DataType|schema=[graphql::ObjectTypeDefinition]) (op="[]")? name=AllowedKeyword;
+```
+
+**Examples:**
+
+<Tabs>
+<TabItem value="simple" label="Simple Schema">
+
+```flow
+Schema User {
+    string name
+    string email
+    boolean isActive
+}
+```
+
+</TabItem>
+<TabItem value="nested" label="Nested Schema">
+
+```flow
+Schema Order {
+    string orderId
+    Customer customer {
+        string name
+        Address address {
+            string street
+            string city
+            string zipCode
+        }
+    }
+    LineItem[] items
+}
+```
+
+</TabItem>
+<TabItem value="array" label="Array Types">
+
+```flow
+Schema ProductCatalog {
+    string[] tags
+    Product[] products
+    Category categories [
+        string name
+        string description
+    ]
+}
+```
+
+</TabItem>
+</Tabs>
+
+### Data Types
+Built-in primitive types:
+
+```ebnf
+DataType:
+  'string' | 'boolean' | 'number';
+```
+
+## Value Assignments
+
+### Schema Assignment (Value)
+Creates data instances conforming to schemas:
+
+```ebnf
+SchemaAssignment:
+  'value' id=AllowedKeyword '->' schema=[Schema]
+  value = (ObjectValue | ArrayValue);
+```
+
+**Examples:**
+
+<Tabs>
+<TabItem value="object" label="Object Values">
+
+```flow
+value userProfile -> User {
+    name: "John Doe"
+    email: "john@example.com"
+    isActive: true
+}
+```
+
+</TabItem>
+<TabItem value="dynamic" label="Dynamic Values">
+
+```flow
+value dynamicUser -> User {
+    name: ${"User_" + currentDate("yyyyMMdd")}
+    email: ${"user" + uuid() + "@example.com"}
+    isActive: ${@Config("default.user.active")}
+}
+```
+
+</TabItem>
+<TabItem value="array" label="Array Values">
+
+```flow
+value productList -> ProductArray {
+    products: [
+        { name: "Product A", price: 100 },
+        { name: "Product B", price: 200 }
+    ]
+}
+```
+
+</TabItem>
+</Tabs>
+
+## Service Definitions
+
+### REST Service
+HTTP service calls with full configuration:
+
+```ebnf
+Service:
+  (sync='synchronous')? (verbose='verbose')? 'Service' type=ID 'as' id=ID 
+  'method' method=ServiceType ('foreach' iterator=SchemaVariable 'as' iteratoralias=AllowedKeyword)?
+  ('input' inputModel=[graphql::ObjectTypeDefinition])? 
+  ('output' (outputModel=OutputOrAlias))? '{'
+  
+  (('Url ->' url=Property)? | ('Url ->' '${'url=Expression'}')?)
+  ('UrlEncoding ->' urlEncoding=EncodingMode)?
+  ('Path ->' '${'path=Expression'}')?
+  ('ProxyHost ->' '${'proxyhost=Expression'}')?
+  ('ProxyPort ->' '${'proxyport=Expression'}')?
+  ('Timeout ->' '${'timeout=Expression'}')?
+  ('Retry ->' '${'retryCount=Expression'}')?
+  (arguments+=ServiceArguments)*
+  (requestArguments+=RequestArgument)*
+  '}';
+
+ServiceType:
+  'GET' | 'POST' | 'PUT' | 'DELETE';
+```
+
+**Examples:**
+
+<Tabs>
+<TabItem value="get" label="GET Request">
+
+```flow
+Service userService method GET as getUserById
+input UserRequest output User {
+    Url -> @Config("api.base.url")
+    Path -> ${"/users/" + UserRequest.id}
+    Timeout -> ${5000}
+    Retry -> ${3}
+    @Header Authorization -> ${"Bearer " + @Config("api.token")}
+    @Header Accept -> ${"application/json"}
+}
+```
+
+</TabItem>
+<TabItem value="post" label="POST Request">
+
+```flow
+Service createUser method POST as createNewUser
+input CreateUserRequest output User {
+    Url -> @Config("api.base.url") 
+    Path -> ${"/users"}
+    Timeout -> ${10000}
+    @Header Content-Type -> ${"application/json"}
+    @Header Authorization -> ${"Bearer " + @Config("api.token")}
+    @Body -> ${CreateUserRequest}
+}
+```
+
+</TabItem>
+<TabItem value="async" label="Asynchronous Service">
+
+```flow
+asynchronous verbose Service paymentProcessor method POST as processPayment
+input PaymentRequest output PaymentResponse {
+    Url -> @Config("payment.api.url")
+    Path -> ${"/process"}
+    Timeout -> ${30000}
+    Retry -> ${2}
+    @Header ApiKey -> @Config("payment.api.key")
+    @Body -> ${PaymentRequest}
+}
+```
+
+</TabItem>
+</Tabs>
+
+### GraphQL Service
+GraphQL query execution:
+
+```ebnf
+GraphQLService:
+  (sync='synchronous')? (verbose='verbose')? 'GraphQLService' id=ID 'graphqlQuery' query=QueryModel '{'
+    ('Url ->' '${'url=Expression'}')
+    ('Path ->' '${'path=Expression'}')?
+    ('Timeout ->' '${'timeout=Expression'}')?
+    ('Retry ->' '${'retryCount=Expression'}')?
+    (variables+=GraphQLVariable)*
+    (headerOrQueryOrPathParam+=HeaderORQueryOrPathParam)*
+  '}';
+```
+
+**Example:**
+```flow
+GraphQLService userGraphQL graphqlQuery GetUserQuery as fetchUserData {
+    Url -> @Config("graphql.endpoint")
+    Path -> ${"/graphql"}
+    Timeout -> ${5000}
+    @Variable userId -> ${userRequest.id}
+    @Header Authorization -> ${"Bearer " + @Config("graphql.token")}
+}
+```
+
+## Mapping (Data Transformation)
+
+### Mapping Definition
+Transform data between schemas:
+
+```ebnf
+Mapping:
+  'Mapping' id=ID
+  ('input' inputModel+=(InPutModel)
+  (',' inputModel+=(InPutModel))*
+  'output' outputModel=OutPutModel)
+  '{'
+  statement+=Statement*
+  '}';
+```
+
+**Examples:**
+
+<Tabs>
+<TabItem value="simple" label="Simple Mapping">
+
+```flow
+Mapping userTransform input RawUser output User {
+    User.name = RawUser.firstName + " " + RawUser.lastName
+    User.email = lowerCase(RawUser.emailAddress)
+    User.isActive = RawUser.status == "active"
+}
+```
+
+</TabItem>
+<TabItem value="multiple-inputs" label="Multiple Inputs">
+
+```flow
+Mapping orderSummary input Order, Customer, Inventory output OrderSummary {
+    OrderSummary.orderId = Order.id
+    OrderSummary.customerName = Customer.firstName + " " + Customer.lastName
+    OrderSummary.totalItems = length(Order.items)
+    OrderSummary.inStock = Inventory.quantity >= Order.totalQuantity
+}
+```
+
+</TabItem>
+<TabItem value="conditional" label="Conditional Logic">
+
+```flow
+Mapping calculatePricing input Order output PricedOrder {
+    PricedOrder.subtotal = sum(Order.items, item -> item.price * item.quantity)
+    PricedOrder.discount = if Order.customerType == "premium" 
+                          then PricedOrder.subtotal * 0.1 
+                          else 0
+    PricedOrder.total = PricedOrder.subtotal - PricedOrder.discount
+    
+    // Conditional statement
+    when (Order.total > 1000) {
+        PricedOrder.shippingCost = 0
+    }
+}
+```
+
+</TabItem>
+</Tabs>
+
+## Flow Control
+
+### Flow Definition
+Orchestrates execution path through nodes:
+
+```ebnf
+Flow:
+  'Flow' id=ID '{'
+  startState = StartState
+  transitionStates += TransitionState*
+  '}';
+
+StartState:
+  'Start' start=[State] '{'
+  ('transition' '{'
+  transition=Transition
+  '}')?
+  '}';
+
+TransitionState:
+  state=[State] '{'
+  ('transition' '{'
+  transition=Transition
+  '}')?
+  '}';
+```
+
+### Transition Logic
+Controls flow between states:
+
+```ebnf
+Transition:
+  expression=Expression '?' trueState=Transition ':' falseState=Transition |
+  ('when' caseExpressions+=Expression 'then' caseStates+=[TransitionState])+ ('otherwise' 'do' defaultState=[TransitionState]) |
+  transition=[TransitionState];
+```
+
+**Examples:**
+
+<Tabs>
+<TabItem value="simple" label="Simple Flow">
+
+```flow
+Flow userProcessingFlow {
+    Start userInput {
+        transition {
+            validateUser
+        }
+    }
+    
+    validateUser {
+        transition {
+            transformUser
+        }
+    }
+    
+    transformUser {}
+}
+```
+
+</TabItem>
+<TabItem value="conditional" label="Conditional Flow">
+
+```flow
+Flow conditionalFlow {
+    Start userRequest {
+        transition {
+            userRequest.useCache == true ? getCachedUser : fetchUserFromAPI
+        }
+    }
+    
+    getCachedUser {}
+    fetchUserFromAPI {
+        transition {
+            transformUser
+        }
+    }
+    transformUser {}
+}
+```
+
+</TabItem>
+<TabItem value="multiway" label="Multi-way Branching">
+
+```flow
+Flow priorityFlow {
+    Start request {
+        transition {
+            when request.priority == "high" then highPriorityProcessor
+            when request.priority == "medium" then mediumPriorityProcessor
+            when request.priority == "low" then lowPriorityProcessor
+            otherwise do defaultProcessor
+        }
+    }
+    
+    highPriorityProcessor {}
+    mediumPriorityProcessor {}
+    lowPriorityProcessor {}
+    defaultProcessor {}
+}
+```
+
+</TabItem>
+</Tabs>
+
+## Expression System
+
+### Expression Hierarchy
+Wolf DSL supports rich expressions with proper operator precedence:
+
+```ebnf
+Expression:
+  BooleanExpression;
+
+BooleanExpression returns Expression:
+  Comparison
+  (({BooleanExpression.left=current} op=("||"|"&&"|"and"|"or")) right=Comparison)*;
+
+Comparison returns Expression:
+  Membership
+  (({Comparison.left=current} op=("<" | ">" | "<=" | ">=")) right=Membership)*;
+
+Membership returns Expression:
+  Equals
+  (({Membership.left=current} op=("in" | "not_in")) "[" right+=Expression(',' right+=Expression)* "]")*;
+
+Equals returns Expression:
+  Addition
+  (({Equals.left=current} op=("==" | "!=" | "=~" | "!~" | "is") ) right=Addition)*;
+
+Addition returns Expression:
+  Multiplication
+  (({Plus.left=current} '+' | {Minus.left=current} SIGN)
+  right=Multiplication)*;
+
+Multiplication returns Expression:
+  Prefixed (({MultiOrDivOrModPow.left=current} op=("*"|"/"|"%"|"^")) right=Prefixed)*;
+```
+
+**Examples:**
+
+<Tabs>
+<TabItem value="arithmetic" label="Arithmetic">
+
+```flow
+// Basic arithmetic
+total = price * quantity + tax
+discount = price * 0.1
+finalPrice = price - discount
+average = sum / count
+```
+
+</TabItem>
+<TabItem value="boolean" label="Boolean Logic">
+
+```flow
+// Boolean expressions
+isValid = age >= 18 && hasPermission == true
+shouldProcess = status == "active" or priority == "high"
+isEligible = age >= 21 && income > 50000 && creditScore >= 700
+```
+
+</TabItem>
+<TabItem value="membership" label="Membership Testing">
+
+```flow
+// Membership operators
+isValidStatus = status in ["active", "pending", "approved"]
+isNotRestricted = country not_in ["RESTRICTED_1", "RESTRICTED_2"] 
+```
+
+</TabItem>
+<TabItem value="ternary" label="Conditional">
+
+```flow
+// Ternary expressions
+discount = if customerType == "premium" then 0.15 else 0.05
+status = if age >= 18 then "adult" else "minor"
+price = if quantity > 10 then basePrice * 0.9 else basePrice
+```
+
+</TabItem>
+</Tabs>
+
+## Built-in Functions
+
+### Collection Functions
+Functions for array/list manipulation:
+
+```ebnf
+CollectionFunction:
+  function=CollectionFunctionCall ('[' refexp=Expression ']')?('.'resultKey+=Key)*;
+
+CollectionFunctionCall:
+  RemoveFunc | FindFirstFunc | FilterFunc | MapFunc | Split | Json | 
+  ConcatFunc | SortFunc | DedupFunc | LastFunc | ParentFunc | 
+  LowerFunc | UpperFunc | UUIDFunc;
+```
+
+**Examples:**
+
+<Tabs>
+<TabItem value="filter" label="Filter & Search">
+
+```flow
+// Filter collections
+activeUsers = filter(users, user -> user.isActive == true)
+premiumUsers = filter(users, user -> user.type == "premium")
+recentOrders = filter(orders, order -> order.date >= "2023-01-01")
+
+// Find operations
+firstAdmin = findFirst(users, user -> user.role == "admin")
+lastOrder = last(orders)
+```
+
+</TabItem>
+<TabItem value="transform" label="Transform">
+
+```flow
+// Map transformations
+userNames = map(users, user -> user.firstName + " " + user.lastName)
+prices = map(products, product -> product.basePrice * 1.1)
+
+// String operations
+upperNames = map(names, name -> upperCase(name))
+cleanEmails = map(emails, email -> lowerCase(email))
+```
+
+</TabItem>
+<TabItem value="aggregate" label="Aggregate">
+
+```flow
+// Aggregation functions
+totalUsers = length(users)
+totalRevenue = sum(orders, order -> order.total)
+userCount = count(users)
+avgOrderValue = sum(orders, order -> order.total) / count(orders)
+
+// Sort and deduplicate
+sortedUsers = sort(users, user.lastName)
+uniqueEmails = dedup(emails)
+```
+
+</TabItem>
+</Tabs>
+
+### String Functions
+Text manipulation functions:
+
+```ebnf
+Split:
+  'split('exp=Expression','regex=STRING')';
+
+Contains:
+  'contains('input=Expression','search=Expression')';
+
+Replace:
+  'replace('text=Expression','searchString=Expression','replacement=Expression')';
+```
+
+### Date Functions
+Date and time operations:
+
+```ebnf
+DateFormat:
+  'dateFormat' '(' from=('\"MM/dd/yyyy\"' | '\"yyyyMMdd\"' | '\"yyyy-MM-dd\"' | '\"ms\"' | STRING) 
+  ',' to=('\"MM/dd/yyyy\"' | '\"yyyyMMdd\"' | '\"yyyy-MM-dd\"' | '\"ms\"' | STRING) 
+  ',' exp=Expression (',' fromTimeZone=(Expression) ',' toTimeZone=(Expression) )? ')';
+
+CurrentDate:
+  'currentDate('format=('\"MM/dd/yyyy\"' | '\"yyyyMMdd\"' | '\"yyyy-MM-dd\"' | '\"ms\"' | STRING)?')';
+
+DayDifference:
+  'dayDifference('from=Expression','to=Expression',' formatter=('\"MM/dd/yyyy\"' | '\"yyyyMMdd\"' | '\"yyyy-MM-dd\"') ')';
+```
+
+## Advanced Features
+
+### Rulebase (Business Rules Engine)
+Define conditional rule sets:
+
+```ebnf
+Rulebase:
+  'Rulebase' (async?='asynchronous')? id=UID '{'
+    rules+=NewRule+
+  '}';
+
+NewRule:
+  'Rule' id=UID ('with [' modifiers+=UID(','modifiers+=UID)*']')? 
+  'using' (inputModel+=InPutModel)(',' inputModel+=InPutModel)* 
+  'inject' injectedTopicId=UID ('withValue' outputModel=InPutModel)? 
+  'when' condition=BooleanExpression;
+```
+
+**Example:**
+```flow
+Rulebase pricingRules {
+    Rule applyPremiumDiscount using Order, Customer 
+    inject discountAmount withValue DiscountValue
+    when Customer.type == "premium" && Order.total > 1000
+    
+    Rule applyBulkDiscount using Order
+    inject discountPercent withValue DiscountPercent  
+    when length(Order.items) > 5
+}
+```
+
+### Custom Functions
+User-defined function calls:
+
+```ebnf
+CustomFunction:
+'custom('id=STRING (','arguments+=CustomFunctionArguments)* ')';
+
+CustomFunctionArguments:
+  value=Expression 'as' key=ID;
+```
+
+**Example:**
+```flow
+result = custom("calculateTax", orderTotal as amount, "CA" as state, true as includeFees)
+```
+
+## Comments and Documentation
+
+Wolf DSL supports standard comment syntax:
+
+```flow
+// Single line comment
+/* Multi-line comment
+   continues here */
+   
+Schema User {
+    string name      // Field comment
+    /* Complex field with
+       detailed explanation */
+    string email
+}
+```
+
+## Validation Rules
+
+The grammar enforces several validation rules:
+
+1. **Schema References**: All data must reference valid schemas
+2. **Type Safety**: Expressions must be type-compatible  
+3. **Flow Completeness**: All transition targets must exist
+4. **Variable Scoping**: Variables must be in scope when referenced
+5. **Service Configuration**: Required service parameters must be provided
+
+## Grammar Evolution
+
+This grammar reference is maintained alongside the Xtext specification. For the most current grammar rules, always refer to the source [`Flow.xtext`](https://github.com/wolf-DSL/flow-language-spec/blob/main/com.intuit.dsl.flow.parent/com.intuit.dsl.flow/src/com/intuit/dsl/flow/Flow.xtext) file.
+
+---
+
+*The grammar specification enables rich IDE support, syntax validation, and code generation while maintaining the declarative simplicity that makes Wolf DSL powerful and easy to use.*

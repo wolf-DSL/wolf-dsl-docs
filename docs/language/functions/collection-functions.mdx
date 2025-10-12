@@ -1,0 +1,757 @@
+---
+title: Collection Functions
+description: Array and list manipulation functions for data processing in Wolf DSL
+sidebar_position: 4
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Collection Functions
+
+Collection functions in Wolf DSL provide powerful array and list manipulation capabilities. These functions are essential for data processing, filtering, transformation, and aggregation operations.
+
+## filter()
+
+Filters array elements based on a boolean condition.
+
+**Syntax:**
+```flow
+result = filter(array, condition)
+```
+
+**Parameters:**
+- `array`: Array to filter
+- `condition`: Boolean expression to evaluate for each element
+
+**Returns:** New array containing only elements that match the condition
+
+**Examples:**
+
+<Tabs>
+<TabItem value="basic" label="Basic Filtering">
+
+```flow
+Schema Product {
+    string id
+    string name
+    number price
+    boolean isActive
+}
+
+Schema ProductList {
+    Product[] products
+    Product[] activeProducts
+    Product[] expensiveProducts
+}
+
+Mapping filterProducts input ProductList output ProductList {
+    // Filter active products
+    ProductList.activeProducts = filter(
+        ProductList.products, 
+        product -> product.isActive == true
+    )
+    
+    // Filter expensive products (over $100)
+    ProductList.expensiveProducts = filter(
+        ProductList.products,
+        product -> product.price > 100
+    )
+}
+```
+
+</TabItem>
+<TabItem value="complex" label="Complex Conditions">
+
+```flow
+Schema User {
+    string id
+    string name
+    number age
+    string role
+    boolean isVerified
+}
+
+Schema UserFilter {
+    User[] users
+    User[] eligibleUsers
+}
+
+Mapping filterEligibleUsers input UserFilter output UserFilter {
+    // Complex filtering condition
+    UserFilter.eligibleUsers = filter(
+        UserFilter.users,
+        user -> user.age >= 18 && 
+                user.isVerified == true && 
+                user.role != "banned"
+    )
+}
+```
+
+</TabItem>
+</Tabs>
+
+## map()
+
+Transforms each element of an array using an expression.
+
+**Syntax:**
+```flow
+result = map(array, transformation)
+result = map(array, transformation as alias)
+result = map(array{range}, transformation)
+```
+
+**Parameters:**
+- `array`: Array to transform
+- `transformation`: Expression to apply to each element
+- `alias` *(optional)*: Alias for the current element
+- `range` *(optional)*: Subset range to process
+
+**Returns:** New array with transformed elements
+
+**Examples:**
+
+<Tabs>
+<TabItem value="simple" label="Simple Transformation">
+
+```flow
+Schema UserData {
+    users [
+        string firstName
+        string lastName
+        number age
+    ]
+    string[] fullNames
+    number[] ages
+}
+
+Mapping transformUsers input UserData output UserData {
+    // Extract full names
+    UserData.fullNames = map(
+        UserData.users, 
+        user -> user.firstName + " " + user.lastName
+    )
+    
+    // Extract ages
+    UserData.ages = map(UserData.users, user -> user.age)
+}
+```
+
+</TabItem>
+<TabItem value="complex" label="Complex Transformation">
+
+```flow
+Schema OrderItem {
+    string productId
+    number quantity
+    number unitPrice
+}
+
+Schema OrderSummary {
+    OrderItem[] items
+    itemSummaries [
+        string description
+        number total
+        boolean isExpensive
+    ]
+}
+
+Mapping createOrderSummary input OrderSummary output OrderSummary {
+    OrderSummary.itemSummaries = map(
+        OrderSummary.items,
+        item -> {
+            description = "Product " + item.productId + " (qty: " + item.quantity + ")"
+            total = item.quantity * item.unitPrice
+            isExpensive = total > 100
+        }
+    )
+}
+```
+
+</TabItem>
+<TabItem value="range" label="Range Processing">
+
+```flow
+Schema DataProcessor {
+    number[] numbers
+    number[] firstFiveDoubled
+    number[] lastThreeSquared
+}
+
+Mapping processRanges input DataProcessor output DataProcessor {
+    // Process first 5 elements
+    DataProcessor.firstFiveDoubled = map(
+        DataProcessor.numbers{0..5}, 
+        num -> num * 2
+    )
+    
+    // Process last 3 elements  
+    DataProcessor.lastThreeSquared = map(
+        DataProcessor.numbers{-3..}, 
+        num -> num * num
+    )
+}
+```
+
+</TabItem>
+</Tabs>
+
+## sort()
+
+Sorts array elements based on a key expression.
+
+**Syntax:**
+```flow
+result = sort(array, keyExpression)
+result = sort(array, keyExpression, orderType)
+```
+
+**Parameters:**
+- `array`: Array to sort
+- `keyExpression`: Expression that returns the sort key
+- `orderType` *(optional)*: `"ascending"` or `"descending"` (default: ascending)
+
+**Returns:** New sorted array
+
+**Examples:**
+
+<Tabs>
+<TabItem value="simple" label="Simple Sorting">
+
+```flow
+Schema ProductList {
+    products [
+        string name
+        number price
+        number rating
+    ]
+    Product[] sortedByPrice
+    Product[] sortedByRating
+}
+
+Mapping sortProducts input ProductList output ProductList {
+    // Sort by price (ascending)
+    ProductList.sortedByPrice = sort(ProductList.products, product.price)
+    
+    // Sort by rating (descending)
+    ProductList.sortedByRating = sort(
+        ProductList.products, 
+        product.rating, 
+        "descending"
+    )
+}
+```
+
+</TabItem>
+<TabItem value="complex" label="Complex Sorting">
+
+```flow
+Schema Employee {
+    string name
+    string department
+    number salary
+    number yearsOfService
+}
+
+Schema EmployeeSort {
+    Employee[] employees
+    Employee[] sortedByDeptThenSalary
+}
+
+Mapping sortEmployees input EmployeeSort output EmployeeSort {
+    // Sort by department, then by salary within department
+    EmployeeSort.sortedByDeptThenSalary = sort(
+        sort(EmployeeSort.employees, employee.salary, "descending"),
+        employee.department
+    )
+}
+```
+
+</TabItem>
+</Tabs>
+
+## dedup()
+
+Removes duplicate elements from an array.
+
+**Syntax:**
+```flow
+result = dedup(array)
+result = dedup(array, keyExpression)
+```
+
+**Parameters:**
+- `array`: Array to deduplicate
+- `keyExpression` *(optional)*: Expression to determine uniqueness
+
+**Returns:** New array with duplicates removed
+
+**Examples:**
+
+<Tabs>
+<TabItem value="simple" label="Simple Deduplication">
+
+```flow
+Schema TagData {
+    string[] tags
+    string[] uniqueTags
+    number[] numbers
+    number[] uniqueNumbers
+}
+
+Mapping removeDuplicates input TagData output TagData {
+    // Remove duplicate tags
+    TagData.uniqueTags = dedup(TagData.tags)
+    
+    // Remove duplicate numbers
+    TagData.uniqueNumbers = dedup(TagData.numbers)
+}
+
+// Input: { tags: ["red", "blue", "red", "green", "blue"] }
+// Output: { uniqueTags: ["red", "blue", "green"] }
+```
+
+</TabItem>
+<TabItem value="key" label="Key-Based Deduplication">
+
+```flow
+Schema User {
+    string id
+    string email
+    string name
+}
+
+Schema UserDedup {
+    User[] users
+    User[] uniqueByEmail
+}
+
+Mapping deduplicateUsers input UserDedup output UserDedup {
+    // Remove users with duplicate emails (keep first occurrence)
+    UserDedup.uniqueByEmail = dedup(UserDedup.users, user.email)
+}
+```
+
+</TabItem>
+</Tabs>
+
+## findFirst()
+
+Finds the first element that matches a condition.
+
+**Syntax:**
+```flow
+result = findFirst(array, condition)
+```
+
+**Parameters:**
+- `array`: Array to search
+- `condition`: Boolean expression for matching
+
+**Returns:** First matching element, or null if none found
+
+**Examples:**
+
+```flow
+Schema ProductSearch {
+    products [
+        string id
+        string name
+        string category
+        boolean inStock
+    ]
+    Product foundProduct
+    Product stockedElectronics
+}
+
+Mapping findProducts input ProductSearch output ProductSearch {
+    // Find first product with specific ID
+    ProductSearch.foundProduct = findFirst(
+        ProductSearch.products, 
+        product -> product.id == "PROD-123"
+    )
+    
+    // Find first electronics item in stock
+    ProductSearch.stockedElectronics = findFirst(
+        ProductSearch.products,
+        product -> product.category == "electronics" && product.inStock == true
+    )
+}
+```
+
+## remove()
+
+Removes elements that match a condition.
+
+**Syntax:**
+```flow
+result = remove(array, condition)
+```
+
+**Parameters:**
+- `array`: Array to process
+- `condition`: Boolean expression for elements to remove
+
+**Returns:** New array with matching elements removed
+
+**Examples:**
+
+```flow
+Schema DataCleaning {
+    users [
+        string name
+        boolean isActive
+        number lastLoginDays
+    ]
+    User[] activeUsers
+    User[] recentUsers
+}
+
+Mapping cleanUserData input DataCleaning output DataCleaning {
+    // Remove inactive users
+    DataCleaning.activeUsers = remove(
+        DataCleaning.users, 
+        user -> user.isActive == false
+    )
+    
+    // Remove users who haven't logged in for over 90 days
+    DataCleaning.recentUsers = remove(
+        DataCleaning.users,
+        user -> user.lastLoginDays > 90
+    )
+}
+```
+
+## last()
+
+Gets the last element of an array.
+
+**Syntax:**
+```flow
+result = last(array)
+```
+
+**Parameters:**
+- `array`: Array to get last element from
+
+**Returns:** Last element of the array
+
+**Examples:**
+
+```flow
+Schema HistoryData {
+    transactions [
+        string id
+        string date
+        number amount
+    ]
+    Transaction lastTransaction
+    string mostRecentDate
+}
+
+Mapping getLatest input HistoryData output HistoryData {
+    // Get the most recent transaction
+    HistoryData.lastTransaction = last(HistoryData.transactions)
+    
+    // Get the most recent date
+    HistoryData.mostRecentDate = last(HistoryData.transactions).date
+}
+```
+
+## shuffle()
+
+Randomizes the order of array elements.
+
+**Syntax:**
+```flow
+result = shuffle(array)
+```
+
+**Parameters:**
+- `array`: Array to randomize
+
+**Returns:** New array with elements in random order
+
+**Examples:**
+
+```flow
+Schema GameData {
+    string[] cards
+    string[] shuffledDeck
+    questions [
+        string question
+        string answer
+    ]
+    Question[] randomQuestions
+}
+
+Mapping randomizeData input GameData output GameData {
+    // Shuffle a deck of cards
+    GameData.shuffledDeck = shuffle(GameData.cards)
+    
+    // Randomize quiz questions
+    GameData.randomQuestions = shuffle(GameData.questions)
+}
+```
+
+## Aggregation Functions
+
+### sum()
+Calculate the sum of numeric values.
+
+**Syntax:**
+```flow
+result = sum(array, expression)
+```
+
+**Examples:**
+```flow
+Schema OrderCalculation {
+    items [
+        number quantity
+        number unitPrice
+    ]
+    number totalValue
+    number totalQuantity
+}
+
+Mapping calculateTotals input OrderCalculation output OrderCalculation {
+    // Sum of all item values
+    OrderCalculation.totalValue = sum(
+        OrderCalculation.items, 
+        item -> item.quantity * item.unitPrice
+    )
+    
+    // Sum of all quantities
+    OrderCalculation.totalQuantity = sum(
+        OrderCalculation.items, 
+        item -> item.quantity
+    )
+}
+```
+
+### count()
+Count array elements.
+
+**Syntax:**
+```flow
+result = count(array)
+```
+
+**Examples:**
+```flow
+Schema Analytics {
+    User[] users
+    number totalUsers
+    number activeUsers
+}
+
+Mapping calculateStats input Analytics output Analytics {
+    Analytics.totalUsers = count(Analytics.users)
+    Analytics.activeUsers = count(
+        filter(Analytics.users, user -> user.isActive == true)
+    )
+}
+```
+
+## Real-World Examples
+
+### E-commerce Product Processing
+
+```flow
+Schema ProductCatalog {
+    products [
+        string id
+        string name
+        number price
+        string category
+        boolean inStock
+        number rating
+        string[] tags
+    ]
+    string[] categories
+    Product[] featuredProducts
+    Product[] topRated
+    number averagePrice
+}
+
+Mapping processProductCatalog input ProductCatalog output ProductCatalog {
+    // Extract unique categories
+    ProductCatalog.categories = dedup(
+        map(ProductCatalog.products, product -> product.category)
+    )
+    
+    // Find featured products (in stock, highly rated, reasonably priced)
+    ProductCatalog.featuredProducts = sort(
+        filter(
+            ProductCatalog.products,
+            product -> product.inStock == true && 
+                      product.rating >= 4.0 && 
+                      product.price < 200
+        ),
+        product.rating,
+        "descending"
+    )
+    
+    // Get top 10 rated products
+    ProductCatalog.topRated = sort(
+        ProductCatalog.products, 
+        product.rating, 
+        "descending"
+    ){0..10}
+    
+    // Calculate average price of in-stock items
+    inStockProducts = filter(ProductCatalog.products, product -> product.inStock == true)
+    ProductCatalog.averagePrice = sum(inStockProducts, product -> product.price) / 
+                                 count(inStockProducts)
+}
+```
+
+### User Analytics Processing
+
+```flow
+Schema UserAnalytics {
+    users [
+        string id
+        string email
+        number age
+        string[] interests
+        number loginCount
+        string lastLogin
+        boolean isPremium
+    ]
+    string[] allInterests
+    User[] engagedUsers
+    User[] premiumUsers
+    analytics {
+        number totalUsers
+        number averageAge
+        number premiumCount
+        string[] topInterests
+    }
+}
+
+Mapping analyzeUsers input UserAnalytics output UserAnalytics {
+    // Identify engaged users (high login count)
+    UserAnalytics.engagedUsers = sort(
+        filter(
+            UserAnalytics.users,
+            user -> user.loginCount > 50
+        ),
+        user.loginCount,
+        "descending"
+    )
+    
+    // Get premium users
+    UserAnalytics.premiumUsers = filter(
+        UserAnalytics.users,
+        user -> user.isPremium == true
+    )
+    
+    // Extract and analyze interests
+    UserAnalytics.allInterests = dedup(
+        concat(
+            map(UserAnalytics.users, user -> user.interests)
+        )
+    )
+    
+    // Calculate analytics
+    UserAnalytics.analytics.totalUsers = count(UserAnalytics.users)
+    UserAnalytics.analytics.averageAge = sum(UserAnalytics.users, user -> user.age) / 
+                                        UserAnalytics.analytics.totalUsers
+    UserAnalytics.analytics.premiumCount = count(UserAnalytics.premiumUsers)
+    
+    // Find most common interests (simplified - would need more complex logic for real counts)
+    UserAnalytics.analytics.topInterests = UserAnalytics.allInterests{0..5}
+}
+```
+
+## Function Chaining Patterns
+
+### Data Pipeline Processing
+```flow
+// Complex data transformation pipeline
+processedData = map(
+    sort(
+        filter(
+            dedup(rawData, item.id),
+            item -> item.isValid == true && item.score > 0.5
+        ),
+        item.priority,
+        "descending"
+    ),
+    item -> {
+        id = item.id
+        displayName = upperCase(item.name)
+        category = lowerCase(item.category)
+        score = item.score * 100
+    }
+)
+```
+
+### Aggregation with Filtering
+```flow
+// Calculate metrics for specific subsets
+activeUserMetrics = {
+    users = filter(allUsers, user -> user.lastLogin >= "2023-01-01")
+    totalValue = sum(users, user -> user.accountValue)
+    averageValue = totalValue / count(users)
+    topUsers = sort(users, user.accountValue, "descending"){0..10}
+}
+```
+
+## Best Practices
+
+### 1. Use Appropriate Functions for Performance
+```flow
+//  Good: Use findFirst() for single item lookup
+targetUser = findFirst(users, user -> user.id == targetId)
+
+//  Avoid: Using filter() when you only need one item
+targetUser = filter(users, user -> user.id == targetId)[0]
+```
+
+### 2. Chain Operations Logically
+```flow
+//  Good: Logical operation order (filter first, then sort)
+result = sort(
+    filter(products, product -> product.inStock == true),
+    product.price
+)
+
+//  Less efficient: Sort then filter
+result = filter(
+    sort(products, product.price),
+    product -> product.inStock == true
+)
+```
+
+### 3. Handle Empty Arrays Gracefully
+```flow
+//  Good: Safe operations with empty arrays
+avgPrice = if count(products) > 0 
+           then sum(products, product -> product.price) / count(products)
+           else 0
+           
+lastItem = if count(items) > 0 then last(items) else null
+```
+
+### 4. Use Meaningful Variable Names in Transformations
+```flow
+//  Good: Clear, descriptive variable names
+usernames = map(users, user -> user.firstName + " " + user.lastName)
+activeProducts = filter(products, product -> product.status == "active")
+
+//  Avoid: Generic variable names
+names = map(users, x -> x.firstName + " " + x.lastName)
+subset = filter(products, p -> p.status == "active")
+```
+
+## Related Topics
+
+- **[String Functions](string-functions)** - Text processing and manipulation
+- **[Date Functions](date-functions)** - Date and time operations
+- **[Mapping Node](/language/nodes/mapping)** - Using collection functions in mappings
+- **[Expression System](/language/expressions)** - Function usage in expressions
+

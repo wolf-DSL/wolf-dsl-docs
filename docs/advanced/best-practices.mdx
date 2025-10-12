@@ -1,0 +1,996 @@
+---
+title: Best Practices
+description: Essential guidelines and patterns for maintainable, efficient Wolf DSL development
+sidebar_position: 2
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Wolf DSL Best Practices
+
+Essential guidelines for maintainable, efficient Wolf DSL development.
+
+## Schema Design
+
+### Use Appropriate Data Types
+
+Choose the most specific data type for each field to ensure type safety and clarity:
+
+<Tabs>
+<TabItem value="good" label=" Good Practices">
+
+```flow
+//  Good: Specific, meaningful data types
+Schema UserProfile {
+    string userId          // Clear identifier
+    string email           // Specific string type
+    number age             // Numeric for calculations
+    boolean isActive       // Clear boolean state
+    string[] permissions   // Array of strings
+    address {              // Nested object for related data
+        string street
+        string city
+        string zipCode
+        string country
+    }
+}
+
+//  Good: Enumerations through validation
+Schema OrderStatus {
+    string status  // validated to be one of: "pending", "processing", "shipped", "delivered"
+    string priority // validated to be one of: "low", "normal", "high", "urgent"
+}
+```
+
+</TabItem>
+<TabItem value="bad" label=" Poor Practices">
+
+```flow
+//  Bad: Generic, unclear types
+Schema UserData {
+    string data1           // Unclear purpose
+    string data2           // No type specificity
+    object info            // Too generic
+    string value           // Ambiguous naming
+}
+
+//  Bad: Inappropriate types
+Schema OrderInfo {
+    string total           // Should be number for calculations
+    number isComplete      // Should be boolean
+    string[] status        // Should be single string
+}
+```
+
+</TabItem>
+</Tabs>
+
+### Schema Reuse and Composition
+
+Leverage schema composition to reduce duplication and improve maintainability:
+
+<Tabs>
+<TabItem value="composition" label="Schema Composition">
+
+```flow
+//  Base schemas for reuse
+Schema Address {
+    string street
+    string city
+    string state
+    string zipCode
+    string country
+}
+
+Schema ContactInfo {
+    string email
+    string phone
+    string website
+}
+
+Schema AuditInfo {
+    string createdBy
+    string createdAt
+    string updatedBy
+    string updatedAt
+}
+
+//  Composed schemas
+Schema Customer {
+    string customerId
+    string name
+    ContactInfo contactInfo
+    Address billingAddress
+    Address shippingAddress
+    AuditInfo audit
+}
+
+Schema Vendor {
+    string vendorId
+    string companyName
+    ContactInfo contactInfo
+    Address businessAddress
+    AuditInfo audit
+}
+```
+
+</TabItem>
+<TabItem value="inheritance" label="Schema References">
+
+```flow
+//  Reference shared schemas
+Schema BaseEntity {
+    string id
+    string createdAt
+    string updatedAt
+    boolean isActive
+}
+
+Schema User -> BaseEntity {
+    string username
+    string email
+    string[] roles
+}
+
+Schema Product -> BaseEntity {
+    string name
+    string description
+    number price
+    string category
+}
+```
+
+</TabItem>
+</Tabs>
+
+### Keep Schemas Focused
+
+Each schema should have a single responsibility and contain only relevant fields:
+
+```flow
+//  Good: Focused schemas
+Schema UserAuthentication {
+    string userId
+    string username
+    string passwordHash
+    string lastLoginAt
+    boolean isLocked
+}
+
+Schema UserProfile {
+    string userId
+    string displayName
+    string email
+    string avatarUrl
+    UserPreferences preferences
+}
+
+Schema UserPreferences {
+    string theme
+    string language
+    string timezone
+    boolean emailNotifications
+}
+
+//  Bad: Kitchen sink schema
+Schema User {
+    string userId
+    string username
+    string passwordHash
+    string displayName
+    string email
+    string avatarUrl
+    string theme
+    string language
+    boolean isLocked
+    boolean emailNotifications
+    // ... 20+ more fields
+}
+```
+
+## Value Node Patterns
+
+### Use Value Nodes for Static Data
+
+Value nodes are perfect for configuration, constants, and test data:
+
+<Tabs>
+<TabItem value="config" label="Configuration Values">
+
+```flow
+//  Configuration data
+value applicationConfig -> AppConfig {
+    appName: "User Management System"
+    version: "2.1.0"
+    environment: "production"
+    features: {
+        enableCache: true
+        debugMode: false
+        maxRetries: 3
+    }
+    limits: {
+        maxUsersPerPage: 50
+        sessionTimeoutMinutes: 30
+        maxUploadSizeMB: 10
+    }
+}
+```
+
+</TabItem>
+<TabItem value="constants" label="Business Constants">
+
+```flow
+//  Business constants
+value businessRules -> BusinessRules {
+    taxRates: {
+        standardRate: 0.08
+        reducedRate: 0.04
+        exemptRate: 0.0
+    }
+    discountTiers: [
+        { name: "Bronze", threshold: 100, rate: 0.05 }
+        { name: "Silver", threshold: 500, rate: 0.10 }
+        { name: "Gold", threshold: 1000, rate: 0.15 }
+        { name: "Platinum", threshold: 5000, rate: 0.20 }
+    ]
+    shippingOptions: [
+        { type: "standard", cost: 5.99, daysMin: 5, daysMax: 7 }
+        { type: "express", cost: 12.99, daysMin: 2, daysMax: 3 }
+        { type: "overnight", cost: 24.99, daysMin: 1, daysMax: 1 }
+    ]
+}
+```
+
+</TabItem>
+<TabItem value="test" label="Test Data">
+
+```flow
+//  Test fixtures
+value testUser -> User {
+    userId: "test-user-123"
+    username: "testuser"
+    email: "test@example.com"
+    isActive: true
+    roles: ["user", "tester"]
+    profile: {
+        firstName: "Test"
+        lastName: "User"
+        dateOfBirth: "1990-01-01"
+    }
+}
+
+value testOrder -> Order {
+    orderId: "order-456"
+    customerId: "test-user-123"
+    status: "pending"
+    items: [
+        { productId: "prod-1", quantity: 2, unitPrice: 29.99 }
+        { productId: "prod-2", quantity: 1, unitPrice: 49.99 }
+    ]
+}
+```
+
+</TabItem>
+</Tabs>
+
+### Dynamic Value Generation
+
+Use expressions in value nodes for calculated or context-dependent data:
+
+```flow
+//  Dynamic values with expressions
+value dynamicConfig -> DynamicConfig {
+    requestId: ${uuid()}
+    timestamp: ${currentDate("yyyy-MM-dd'T'HH:mm:ss'Z'")}
+    environment: ${if isDevelopment then "dev" else "prod"}
+    debugEnabled: ${environment == "dev" || enableDebugging}
+    apiBaseUrl: ${if environment == "dev" 
+                  then "https://api.dev.example.com" 
+                  else "https://api.example.com"}
+}
+```
+
+## Service Node Best Practices
+
+### Use Async Services When Possible
+
+Prefer asynchronous service calls for better performance and scalability:
+
+<Tabs>
+<TabItem value="async" label=" Asynchronous">
+
+```flow
+//  Good: Asynchronous service calls
+Service userService method GET async as fetchUser {
+    Path -> "/users/${userId}"
+    @Header Authorization -> "Bearer ${authToken}"
+    @Header X-Request-ID -> ${uuid()}
+}
+
+Service notificationService method POST async as sendNotification {
+    Path -> "/notifications"
+    @Header Content-Type -> "application/json"
+    @Body -> ${json(notificationData)}
+}
+```
+
+</TabItem>
+<TabItem value="sync" label=" Synchronous (When Necessary)">
+
+```flow
+//  Use sync only when you need immediate response
+Service authService method POST as authenticate {
+    Path -> "/auth/login"
+    @Header Content-Type -> "application/json"
+    @Body -> ${json(credentials)}
+}
+
+Service validationService method POST as validateData {
+    Path -> "/validate"
+    @Body -> ${json(dataToValidate)}
+}
+```
+
+</TabItem>
+</Tabs>
+
+### Comprehensive Service Configuration
+
+Include all necessary headers, error handling, and timeout configuration:
+
+```flow
+//  Well-configured service
+Service paymentService method POST async as processPayment {
+    Path -> "/payments"
+    
+    // Standard headers
+    @Header Content-Type -> "application/json"
+    @Header Authorization -> "Bearer ${authToken}"
+    @Header X-Request-ID -> ${requestId}
+    @Header X-Correlation-ID -> ${correlationId}
+    @Header User-Agent -> "UserService/2.1.0"
+    
+    // Request body
+    @Body -> ${json({
+        orderId: order.id,
+        amount: order.total,
+        currency: order.currency,
+        paymentMethod: order.paymentMethod,
+        metadata: {
+            customerId: order.customerId,
+            timestamp: currentDate("ms")
+        }
+    })}
+    
+    // Configuration
+    @Timeout -> 30000  // 30 seconds
+    @Retry -> 3
+    @CircuitBreaker -> true
+}
+```
+
+### Service Response Handling
+
+Always handle both success and error scenarios:
+
+```flow
+Flow paymentFlow {
+    Start processPayment as payment {
+        transition {
+            payment.success && payment.status == "completed" ? sendConfirmation :
+            payment.success && payment.status == "pending" ? waitForConfirmation :
+            payment.error && payment.errorCode == "INSUFFICIENT_FUNDS" ? handleInsufficientFunds :
+            payment.error && payment.errorCode == "TIMEOUT" ? retryPayment :
+            handlePaymentError
+        }
+    }
+    
+    sendConfirmation {}
+    waitForConfirmation {}
+    handleInsufficientFunds {}
+    retryPayment {}
+    handlePaymentError {}
+}
+```
+
+## Mapping Node Optimization
+
+### Break Complex Mappings into Steps
+
+Use intermediate variables to make complex transformations readable:
+
+<Tabs>
+<TabItem value="good" label=" Step-by-Step">
+
+```flow
+//  Good: Clear, step-by-step mapping
+Mapping processOrderData input OrderData output ProcessedOrder {
+    // Step 1: Basic data transformation
+    ProcessedOrder.orderId = OrderData.id
+    ProcessedOrder.customerName = upperCase(OrderData.customer.firstName + " " + OrderData.customer.lastName)
+    
+    // Step 2: Calculate financial values
+    subtotal = sum(OrderData.items, item -> item.quantity * item.unitPrice)
+    taxAmount = subtotal * (OrderData.taxRate / 100)
+    shippingCost = if subtotal > 50 then 0 else 9.99
+    
+    // Step 3: Final calculations
+    ProcessedOrder.subtotal = currencyFormat(subtotal)
+    ProcessedOrder.tax = currencyFormat(taxAmount)
+    ProcessedOrder.shipping = currencyFormat(shippingCost)
+    ProcessedOrder.total = currencyFormat(subtotal + taxAmount + shippingCost)
+    
+    // Step 4: Process items
+    ProcessedOrder.items = map(OrderData.items, item -> {
+        name = item.productName,
+        quantity = item.quantity,
+        unitPrice = currencyFormat(item.unitPrice),
+        totalPrice = currencyFormat(item.quantity * item.unitPrice)
+    })
+    
+    // Step 5: Determine status
+    ProcessedOrder.status = if subtotal > 1000 then "priority" else "standard"
+    ProcessedOrder.estimatedDelivery = addToDate(
+        currentDate("yyyy-MM-dd"), 
+        "yyyy-MM-dd", 
+        if ProcessedOrder.status == "priority" then 2 else 5, 
+        "Days"
+    )
+}
+```
+
+</TabItem>
+<TabItem value="bad" label=" Complex Single Line">
+
+```flow
+//  Bad: Everything in complex expressions
+Mapping processOrderData input OrderData output ProcessedOrder {
+    ProcessedOrder.total = currencyFormat(
+        sum(OrderData.items, item -> item.quantity * item.unitPrice) + 
+        (sum(OrderData.items, item -> item.quantity * item.unitPrice) * (OrderData.taxRate / 100)) + 
+        (if sum(OrderData.items, item -> item.quantity * item.unitPrice) > 50 then 0 else 9.99)
+    )
+    
+    ProcessedOrder.estimatedDelivery = addToDate(
+        currentDate("yyyy-MM-dd"), 
+        "yyyy-MM-dd", 
+        if sum(OrderData.items, item -> item.quantity * item.unitPrice) > 1000 then 2 else 5, 
+        "Days"
+    )
+}
+```
+
+</TabItem>
+</Tabs>
+
+### Efficient Collection Processing
+
+Use collection functions efficiently and avoid redundant operations:
+
+<Tabs>
+<TabItem value="efficient" label=" Efficient">
+
+```flow
+//  Good: Process collections efficiently
+Mapping analyzeUserActivity input UserData output UserAnalytics {
+    // Filter once, use multiple times
+    activeUsers = filter(UserData.users, user -> user.isActive && user.lastLogin != null)
+    
+    // Calculate metrics from filtered data
+    UserAnalytics.totalActiveUsers = length(activeUsers)
+    UserAnalytics.averageLoginDays = sum(
+        activeUsers, 
+        user -> dayDifference(user.lastLogin, currentDate("yyyy-MM-dd"), "yyyy-MM-dd")
+    ) / length(activeUsers)
+    
+    // Process premium users from already filtered set
+    premiumActiveUsers = filter(activeUsers, user -> user.tier == "premium")
+    UserAnalytics.premiumUserCount = length(premiumActiveUsers)
+    UserAnalytics.premiumUserRevenue = sum(premiumActiveUsers, user -> user.monthlyRevenue)
+}
+```
+
+</TabItem>
+<TabItem value="inefficient" label=" Inefficient">
+
+```flow
+//  Bad: Redundant filtering operations
+Mapping analyzeUserActivity input UserData output UserAnalytics {
+    // Same filter applied multiple times
+    UserAnalytics.totalActiveUsers = length(
+        filter(UserData.users, user -> user.isActive && user.lastLogin != null)
+    )
+    
+    UserAnalytics.averageLoginDays = sum(
+        filter(UserData.users, user -> user.isActive && user.lastLogin != null),
+        user -> dayDifference(user.lastLogin, currentDate("yyyy-MM-dd"), "yyyy-MM-dd")
+    ) / length(filter(UserData.users, user -> user.isActive && user.lastLogin != null))
+}
+```
+
+</TabItem>
+</Tabs>
+
+### Safe Data Access
+
+Always handle null values and edge cases:
+
+```flow
+//  Safe data access with null handling
+Mapping safeDataProcessing input UserInput output SafeOutput {
+    // Safe string operations
+    SafeOutput.displayName = if UserInput.firstName != null && UserInput.lastName != null
+        then UserInput.firstName + " " + UserInput.lastName
+        else if UserInput.firstName != null
+        then UserInput.firstName
+        else if UserInput.lastName != null
+        then UserInput.lastName
+        else "Unknown User"
+    
+    // Safe numeric operations
+    SafeOutput.averageScore = if UserInput.scores != null && length(UserInput.scores) > 0
+        then sum(UserInput.scores, score -> score) / length(UserInput.scores)
+        else 0
+    
+    // Safe collection operations
+    SafeOutput.validEmails = if UserInput.emails != null
+        then filter(UserInput.emails, email -> email != null && contains(email, "@"))
+        else []
+    
+    // Safe date operations
+    SafeOutput.accountAge = if UserInput.registrationDate != null
+        then dayDifference(
+            UserInput.registrationDate,
+            currentDate("yyyy-MM-dd"),
+            "yyyy-MM-dd"
+        )
+        else 0
+}
+```
+
+## Flow Design Patterns
+
+### Clear Flow Structure
+
+Design flows with clear entry points, decision points, and exit strategies:
+
+<Tabs>
+<TabItem value="clear" label=" Clear Flow">
+
+```flow
+//  Good: Well-structured flow with clear logic
+Flow userRegistrationFlow {
+    Start validateInput {
+        transition {
+            input.isValid && input.email != null ? checkExistingUser : 
+            handleValidationError
+        }
+    }
+    
+    checkExistingUser as userLookup {
+        transition {
+            userLookup.userExists ? handleUserExists :
+            userLookup.error ? handleLookupError :
+            createUser
+        }
+    }
+    
+    createUser as newUser {
+        transition {
+            newUser.success ? sendWelcomeEmail : handleCreationError
+        }
+    }
+    
+    sendWelcomeEmail as emailService {
+        transition {
+            emailService.success ? registrationComplete : 
+            logEmailError
+        }
+    }
+    
+    // Success path
+    registrationComplete {}
+    
+    // Error handling
+    handleValidationError {}
+    handleUserExists {}
+    handleLookupError {}
+    handleCreationError {}
+    logEmailError {}
+}
+```
+
+</TabItem>
+<TabItem value="complex" label=" Complex Flow">
+
+```flow
+//  Bad: Overly complex conditional logic
+Flow complexFlow {
+    Start processData {
+        transition {
+            (input.isValid && input.type == "premium" && input.amount > 100) ||
+            (input.isValid && input.type == "standard" && input.amount > 500) ||
+            (input.isValid && input.type == "trial" && input.amount > 0 && 
+             dayDifference(input.startDate, currentDate("yyyy-MM-dd"), "yyyy-MM-dd") < 30) ?
+                (input.requiresApproval && input.amount > 1000 ? 
+                    (input.hasManagerApproval ? processApproved : requestApproval) :
+                    directProcess) :
+                handleError
+        }
+    }
+    
+    // ... many more complex nodes
+}
+```
+
+</TabItem>
+</Tabs>
+
+### Error Handling Patterns
+
+Implement comprehensive error handling with clear error paths:
+
+```flow
+//  Comprehensive error handling
+Flow robustProcessingFlow {
+    Start initializeProcess {
+        transition {
+            initialization.success ? validateData : handleInitError
+        }
+    }
+    
+    validateData as validation {
+        transition {
+            validation.success ? processMainLogic :
+            validation.errorType == "INVALID_FORMAT" ? handleFormatError :
+            handleGenericValidationError
+        }
+    }
+    
+    processMainLogic as mainProcess {
+        transition {
+            mainProcess.success ? finalizeProcess :
+            mainProcess.errorType == "TIMEOUT" ? retryProcess :
+            handleProcessingError
+        }
+    }
+    
+    retryProcess as retryAttempt {
+        transition {
+            retryAttempt.success ? finalizeProcess :
+            retryAttempt.attemptCount < 3 ? retryProcess :
+            handleMaxRetriesExceeded
+        }
+    }
+    
+    // Success and error paths
+    finalizeProcess {}
+    handleInitError {}
+    handleFormatError {}
+    handleGenericValidationError {}
+    handleProcessingError {}
+    handleMaxRetriesExceeded {}
+}
+```
+
+## Expression Best Practices
+
+### Use Clear Conditional Logic
+
+Write expressions that are easy to read and understand:
+
+<Tabs>
+<TabItem value="readable" label=" Readable">
+
+```flow
+//  Good: Clear, readable conditions
+Schema PricingLogic {
+    number finalPrice
+    string discountReason
+    boolean isEligible
+}
+
+Mapping calculatePricing input OrderData output PricingLogic {
+    // Clear boolean expressions
+    isNewCustomer = OrderData.customer.registrationDate != null && 
+        dayDifference(OrderData.customer.registrationDate, currentDate("yyyy-MM-dd"), "yyyy-MM-dd") <= 30
+    
+    isLargeOrder = OrderData.total > 500
+    isPremiumCustomer = OrderData.customer.tier == "premium" || OrderData.customer.tier == "gold"
+    
+    // Clear conditional pricing
+    PricingLogic.finalPrice = if isPremiumCustomer && isLargeOrder
+        then OrderData.total * 0.85  // 15% premium + bulk discount
+        else if isPremiumCustomer
+        then OrderData.total * 0.90  // 10% premium discount
+        else if isLargeOrder
+        then OrderData.total * 0.95  // 5% bulk discount
+        else if isNewCustomer
+        then OrderData.total * 0.90  // 10% new customer discount
+        else OrderData.total
+    
+    // Clear discount reasoning
+    PricingLogic.discountReason = if isPremiumCustomer && isLargeOrder
+        then "Premium customer with large order"
+        else if isPremiumCustomer
+        then "Premium customer discount"
+        else if isLargeOrder
+        then "Bulk order discount"
+        else if isNewCustomer
+        then "New customer welcome discount"
+        else "No discount applied"
+}
+```
+
+</TabItem>
+<TabItem value="complex" label=" Complex">
+
+```flow
+//  Bad: Complex, hard-to-read expressions
+Mapping calculatePricing input OrderData output PricingLogic {
+    PricingLogic.finalPrice = OrderData.total * (
+        (OrderData.customer.tier == "premium" || OrderData.customer.tier == "gold") && OrderData.total > 500 ? 0.85 :
+        (OrderData.customer.tier == "premium" || OrderData.customer.tier == "gold") ? 0.90 :
+        OrderData.total > 500 ? 0.95 :
+        (OrderData.customer.registrationDate != null && 
+         dayDifference(OrderData.customer.registrationDate, currentDate("yyyy-MM-dd"), "yyyy-MM-dd") <= 30) ? 0.90 :
+        1.0
+    )
+}
+```
+
+</TabItem>
+</Tabs>
+
+### Safe Function Usage
+
+Use functions safely with proper error handling:
+
+```flow
+//  Safe function usage
+Mapping safeProcessing input InputData output ProcessedData {
+    // Safe string operations
+    ProcessedData.cleanEmail = if InputData.email != null
+        then lowerCase(replace(InputData.email, " ", ""))
+        else ""
+    
+    // Safe collection operations
+    ProcessedData.validItems = if InputData.items != null && length(InputData.items) > 0
+        then filter(InputData.items, item -> item != null && item.isValid)
+        else []
+}
+```
+
+## Performance Considerations
+
+### Minimize Redundant Calculations
+
+Cache calculated values and reuse them:
+
+```flow
+//  Efficient: Calculate once, use multiple times
+Mapping efficientCalculations input OrderData output OrderSummary {
+    // Calculate once
+    subtotal = sum(OrderData.items, item -> item.quantity * item.unitPrice)
+    itemCount = length(OrderData.items)
+    customerTier = OrderData.customer.tier
+    
+    // Reuse calculations
+    OrderSummary.subtotal = currencyFormat(subtotal)
+    OrderSummary.itemCount = itemCount
+    OrderSummary.averageItemValue = if itemCount > 0 then currencyFormat(subtotal / itemCount) else "$0.00"
+    
+    // Tier-based calculations
+    discountRate = if customerTier == "platinum" then 0.20
+                  else if customerTier == "gold" then 0.15
+                  else if customerTier == "silver" then 0.10
+                  else 0.0
+    
+    discountAmount = subtotal * discountRate
+    OrderSummary.discount = currencyFormat(discountAmount)
+    OrderSummary.total = currencyFormat(subtotal - discountAmount)
+}
+```
+
+### Optimize Collection Operations
+
+Use appropriate collection functions and avoid nested loops when possible:
+
+```flow
+//  Optimized collection processing
+Mapping optimizedDataProcessing input LargeDataSet output ProcessedResults {
+    // Single pass filtering and processing
+    validUsers = filter(
+        LargeDataSet.users, 
+        user -> user.isActive && user.email != null && user.lastLogin != null
+    )
+    
+    // Batch processing
+    userMetrics = map(validUsers, user -> {
+        daysSinceLogin = dayDifference(user.lastLogin, currentDate("yyyy-MM-dd"), "yyyy-MM-dd"),
+        isRecentlyActive = daysSinceLogin <= 30,
+        lifetimeValue = user.totalPurchases * user.averageOrderValue
+    })
+    
+    // Efficient aggregations
+    ProcessedResults.totalActiveUsers = length(validUsers)
+    ProcessedResults.recentlyActiveUsers = length(
+        filter(userMetrics, metric -> metric.isRecentlyActive)
+    )
+    ProcessedResults.totalLifetimeValue = sum(userMetrics, metric -> metric.lifetimeValue)
+}
+```
+
+## Documentation and Naming
+
+### Use Descriptive Names
+
+Choose names that clearly indicate purpose and context:
+
+<Tabs>
+<TabItem value="good" label=" Descriptive Names">
+
+```flow
+//  Good: Clear, descriptive names
+Schema CustomerOrderProcessor {
+    string customerId
+    string customerEmail
+    string orderConfirmationId
+    number totalOrderValue
+    boolean requiresManagerApproval
+}
+
+Mapping processCustomerOrder input CustomerData output OrderResult {
+    OrderResult.orderConfirmationId = uuid()
+    OrderResult.estimatedDeliveryDate = calculateDeliveryDate(order.shippingMethod)
+    OrderResult.requiresApprovalWorkflow = order.totalValue > approvalThreshold
+}
+
+Flow customerOrderProcessingFlow {
+    Start validateCustomerData {}
+    processPaymentInformation {}
+    sendOrderConfirmationEmail {}
+    updateInventoryLevels {}
+}
+```
+
+</TabItem>
+<TabItem value="bad" label=" Unclear Names">
+
+```flow
+//  Bad: Unclear, generic names
+Schema Data {
+    string id
+    string val1
+    string val2
+    number num
+    boolean flag
+}
+
+Mapping process input DataA output DataB {
+    DataB.result = calculate(DataA.value)
+    DataB.status = check(DataA.flag)
+}
+
+Flow mainFlow {
+    Start step1 {}
+    step2 {}
+    step3 {}
+    end {}
+}
+```
+
+</TabItem>
+</Tabs>
+
+### Add Meaningful Comments
+
+Document complex logic and business rules:
+
+```flow
+// Customer loyalty discount calculation based on business rules:
+// - Platinum: 20% on orders > $500, 15% otherwise
+// - Gold: 15% on orders > $300, 10% otherwise  
+// - Silver: 10% on orders > $200, 5% otherwise
+// - New customers get additional 5% for first 30 days
+Mapping calculateLoyaltyDiscount input OrderData output DiscountInfo {
+    // Base discount from customer tier
+    baseTierDiscount = if customer.tier == "platinum"
+        then if order.total > 500 then 0.20 else 0.15
+        else if customer.tier == "gold"
+        then if order.total > 300 then 0.15 else 0.10
+        else if customer.tier == "silver"
+        then if order.total > 200 then 0.10 else 0.05
+        else 0.0
+    
+    // Additional new customer bonus (first 30 days)
+    newCustomerBonus = if daysSinceRegistration <= 30 then 0.05 else 0.0
+    
+    // Calculate final discount (capped at 25% maximum)
+    totalDiscountRate = min(baseTierDiscount + newCustomerBonus, 0.25)
+    DiscountInfo.discountRate = totalDiscountRate
+    DiscountInfo.discountAmount = order.total * totalDiscountRate
+}
+```
+
+## Testing Considerations
+
+### Design for Testability
+
+Structure your flows to enable easy unit testing:
+
+```flow
+//  Testable design with clear separation of concerns
+Schema ValidationRules {
+    number minimumAge
+    number maximumOrderValue
+    string[] allowedCountries
+}
+
+value standardValidationRules -> ValidationRules {
+    minimumAge: 18
+    maximumOrderValue: 10000
+    allowedCountries: ["US", "CA", "GB", "AU"]
+}
+
+// Separate validation logic for unit testing
+Mapping validateUserInput input UserData, ValidationRules output ValidationResult {
+    ValidationResult.isAgeValid = UserData.age >= ValidationRules.minimumAge
+    ValidationResult.isCountryValid = UserData.country in ValidationRules.allowedCountries
+    ValidationResult.isOrderValueValid = UserData.orderValue <= ValidationRules.maximumOrderValue
+    ValidationResult.isOverallValid = ValidationResult.isAgeValid && 
+                                     ValidationResult.isCountryValid && 
+                                     ValidationResult.isOrderValueValid
+}
+
+// Main flow uses validation logic
+Flow userOrderFlow {
+    Start validateUserInput as validation {
+        transition {
+            validation.isOverallValid ? processOrder : handleValidationFailure
+        }
+    }
+    processOrder {}
+    handleValidationFailure {}
+}
+```
+
+### Create Testable Components
+
+Break down complex logic into smaller, testable components:
+
+```flow
+//  Small, focused mappings that are easy to test
+Mapping calculateSubtotal input OrderItems output SubtotalInfo {
+    SubtotalInfo.itemCount = length(OrderItems.items)
+    SubtotalInfo.subtotal = sum(OrderItems.items, item -> item.quantity * item.unitPrice)
+}
+
+Mapping calculateTax input SubtotalInfo, TaxRules output TaxInfo {
+    TaxInfo.taxRate = TaxRules.standardRate
+    TaxInfo.taxAmount = SubtotalInfo.subtotal * TaxInfo.taxRate
+}
+
+Mapping calculateShipping input SubtotalInfo, ShippingRules output ShippingInfo {
+    ShippingInfo.shippingCost = if SubtotalInfo.subtotal > ShippingRules.freeShippingThreshold
+        then 0
+        else ShippingRules.standardShippingCost
+}
+
+// Combine components in main mapping
+Mapping calculateOrderTotal input OrderData output OrderTotal {
+    subtotalInfo = calculateSubtotal(OrderData.items)
+    taxInfo = calculateTax(subtotalInfo, OrderData.taxRules)
+    shippingInfo = calculateShipping(subtotalInfo, OrderData.shippingRules)
+    
+    OrderTotal.subtotal = subtotalInfo.subtotal
+    OrderTotal.tax = taxInfo.taxAmount
+    OrderTotal.shipping = shippingInfo.shippingCost
+    OrderTotal.total = subtotalInfo.subtotal + taxInfo.taxAmount + shippingInfo.shippingCost
+}
+```
+
+---
+
+*Wolf DSL best practices enable you to build applications that are maintainable, performant, and easy to understand.*

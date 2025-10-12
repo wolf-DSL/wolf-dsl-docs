@@ -1,0 +1,773 @@
+---
+title: Utility Functions
+description: General purpose utility functions for data processing and manipulation in Wolf DSL
+sidebar_position: 5
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Utility Functions
+
+General purpose utility functions for data processing, formatting, and manipulation. These functions handle common tasks like ID generation, data serialization, value selection, and formatting.
+
+## uuid()
+
+Generates a universally unique identifier (UUID) using the standard UUID format.
+
+**Syntax:**
+```flow
+result = uuid()
+```
+
+**Parameters:** None
+
+**Returns:** String containing a randomly generated UUID (e.g., `"550e8400-e29b-41d4-a716-446655440000"`)
+
+**Examples:**
+
+<Tabs>
+<TabItem value="basic" label="Basic Usage">
+
+```flow
+Schema EntityCreation {
+    string id
+    string correlationId
+    string requestId
+}
+
+Mapping createEntity output EntityCreation {
+    EntityCreation.id = uuid()
+    EntityCreation.correlationId = uuid()
+    EntityCreation.requestId = uuid()
+}
+
+// Output:
+// {
+//   "id": "550e8400-e29b-41d4-a716-446655440000",
+//   "correlationId": "6ba7b810-9dad-11d1-80b4-00c04fd430c8", 
+//   "requestId": "6ba7b811-9dad-11d1-80b4-00c04fd430c8"
+// }
+```
+
+</TabItem>
+<TabItem value="dynamic" label="Dynamic Value Generation">
+
+```flow
+Schema UserRegistration {
+    string userId
+    string sessionId
+    string verificationToken
+}
+
+value newUser -> UserRegistration {
+    userId: ${uuid()}
+    sessionId: ${uuid()}
+    verificationToken: ${uuid()}
+}
+```
+
+</TabItem>
+<TabItem value="service" label="Service Headers">
+
+```flow
+Service apiService method POST as createOrder {
+    Path -> "/orders"
+    @Header X-Request-ID -> ${uuid()}
+    @Header X-Correlation-ID -> ${uuid()}
+    @Header X-Session-ID -> ${uuid()}
+    @Body -> ${orderData}
+}
+```
+
+</TabItem>
+</Tabs>
+
+## json()
+
+Converts structured data to JSON string format.
+
+**Syntax:**
+```flow
+result = json(data)
+```
+
+**Parameters:**
+- `data`: Any structured data (object, array, primitive)
+
+**Returns:** JSON string representation of the data
+
+**Examples:**
+
+<Tabs>
+<TabItem value="object" label="Object Serialization">
+
+```flow
+Schema DataSerialization {
+    user {
+        string name
+        number age
+        string[] hobbies
+    }
+    string userJson
+    string configJson
+}
+
+Mapping serializeData input DataSerialization output DataSerialization {
+    DataSerialization.userJson = json(DataSerialization.user)
+    
+    // Create and serialize configuration object
+    configObject = {
+        environment: "production",
+        version: "1.2.3", 
+        features: ["auth", "logging", "metrics"]
+    }
+    DataSerialization.configJson = json(configObject)
+}
+
+// Output:
+// {
+//   "userJson": "{\"name\":\"John\",\"age\":30,\"hobbies\":[\"reading\",\"gaming\"]}",
+//   "configJson": "{\"environment\":\"production\",\"version\":\"1.2.3\",\"features\":[\"auth\",\"logging\",\"metrics\"]}"
+// }
+```
+
+</TabItem>
+<TabItem value="logging" label="Logging & Debugging">
+
+```flow
+Schema AuditLog {
+    string action
+    string userId
+    string resourceId
+    string timestamp
+    object metadata
+    string logEntry
+}
+
+Mapping createAuditLog input AuditLog output AuditLog {
+    AuditLog.logEntry = json({
+        action: AuditLog.action,
+        userId: AuditLog.userId,
+        resourceId: AuditLog.resourceId,
+        timestamp: AuditLog.timestamp,
+        metadata: AuditLog.metadata,
+        requestId: uuid()
+    })
+}
+```
+
+</TabItem>
+<TabItem value="api" label="API Response Formatting">
+
+```flow
+Schema ApiResponse {
+    boolean success
+    string message
+    object data
+    string[] errors
+    string responseJson
+}
+
+Mapping formatApiResponse input ApiResponse output ApiResponse {
+    ApiResponse.responseJson = json({
+        success: ApiResponse.success,
+        message: ApiResponse.message,
+        data: ApiResponse.data,
+        errors: ApiResponse.errors,
+        timestamp: currentDate("yyyy-MM-dd'T'HH:mm:ss'Z'"),
+        requestId: uuid()
+    })
+}
+```
+
+</TabItem>
+</Tabs>
+
+## pickFirst()
+
+Returns the first value from a list that satisfies a condition, or the first non-null value.
+
+**Syntax:**
+```flow
+result = pickFirst(value1, value2, value3, ...)
+result = pickFirst(value1, value2, value3, ... -> condition)
+```
+
+**Parameters:**
+- `value1, value2, ...`: Values to evaluate
+- `condition` *(optional)*: Boolean expression using `it` to reference current value
+
+**Returns:** First value that meets the condition, or first non-null value
+
+**Examples:**
+
+<Tabs>
+<TabItem value="fallback" label="Fallback Values">
+
+```flow
+Schema ConfigurationManager {
+    string userPreference
+    string defaultSetting
+    string systemDefault
+    string finalValue
+    string emailPreference
+    string finalEmail
+}
+
+Mapping resolveConfiguration input ConfigurationManager output ConfigurationManager {
+    // Pick first non-null value as fallback chain
+    ConfigurationManager.finalValue = pickFirst(
+        ConfigurationManager.userPreference,
+        ConfigurationManager.defaultSetting, 
+        ConfigurationManager.systemDefault,
+        "hardcoded-fallback"
+    )
+    
+    // Pick first valid email (non-empty)
+    ConfigurationManager.finalEmail = pickFirst(
+        ConfigurationManager.emailPreference,
+        "user@example.com"
+    )
+}
+
+// Input: { userPreference: null, defaultSetting: "dark-mode", systemDefault: "light-mode" }
+// Output: { finalValue: "dark-mode", finalEmail: "user@example.com" }
+```
+
+</TabItem>
+<TabItem value="conditional" label="Conditional Selection">
+
+```flow
+Schema PricingEngine {
+    number listPrice
+    number memberPrice
+    number promoPrice
+    number finalPrice
+    number quantity
+    number bulkPrice
+    number calculatedPrice
+}
+
+Mapping calculatePricing input PricingEngine output PricingEngine {
+    // Pick first price over $10
+    PricingEngine.finalPrice = pickFirst(
+        PricingEngine.promoPrice,
+        PricingEngine.memberPrice,
+        PricingEngine.listPrice
+        -> it > 10
+    )
+    
+    // Pick appropriate price based on quantity
+    PricingEngine.calculatedPrice = pickFirst(
+        PricingEngine.bulkPrice,
+        PricingEngine.listPrice 
+        -> PricingEngine.quantity >= 10
+    ) || PricingEngine.listPrice
+}
+```
+
+</TabItem>
+<TabItem value="validation" label="Data Validation">
+
+```flow
+Schema UserValidation {
+    string primaryEmail
+    string secondaryEmail
+    string backupEmail
+    string validEmail
+    number score1
+    number score2
+    number score3
+    number validScore
+}
+
+Mapping validateData input UserValidation output UserValidation {
+    // Pick first valid email (contains @)
+    UserValidation.validEmail = pickFirst(
+        UserValidation.primaryEmail,
+        UserValidation.secondaryEmail,
+        UserValidation.backupEmail
+        -> contains(it, "@") && length(it) > 5
+    )
+    
+    // Pick first score above threshold
+    UserValidation.validScore = pickFirst(
+        UserValidation.score1,
+        UserValidation.score2,
+        UserValidation.score3
+        -> it > 50
+    ) || 0
+}
+```
+
+</TabItem>
+</Tabs>
+
+## currencyFormat()
+
+Formats numeric values as currency with proper formatting and symbols.
+
+**Syntax:**
+```flow
+result = currencyFormat(amount)
+result = currencyFormat(amount, format)
+```
+
+**Parameters:**
+- `amount`: Numeric value to format (number or string)
+- `format` *(optional)*: `"DECIMAL"` (default) or `"INTEGER"`
+
+**Returns:** Formatted currency string with dollar sign and thousands separators
+
+**Examples:**
+
+<Tabs>
+<TabItem value="basic" label="Basic Formatting">
+
+```flow
+Schema PriceFormatting {
+    number price
+    number cost
+    string formattedPrice
+    string formattedCost
+    string roundedPrice
+}
+
+Mapping formatPrices input PriceFormatting output PriceFormatting {
+    PriceFormatting.formattedPrice = currencyFormat(PriceFormatting.price)
+    PriceFormatting.formattedCost = currencyFormat(PriceFormatting.cost, "DECIMAL")
+    PriceFormatting.roundedPrice = currencyFormat(PriceFormatting.price, "INTEGER")
+}
+
+// Input: { price: 1234.567, cost: 89.99 }
+// Output:
+// {
+//   "formattedPrice": "$1,234.57",
+//   "formattedCost": "$89.99", 
+//   "roundedPrice": "$1,235"
+// }
+```
+
+</TabItem>
+<TabItem value="calculations" label="Financial Calculations">
+
+```flow
+Schema InvoiceCalculation {
+    number subtotal
+    number taxRate
+    number discountPercent
+    number taxAmount
+    number discountAmount
+    number total
+    string subtotalFormatted
+    string taxFormatted
+    string discountFormatted
+    string totalFormatted
+}
+
+Mapping calculateInvoice input InvoiceCalculation output InvoiceCalculation {
+    // Calculate amounts
+    InvoiceCalculation.taxAmount = InvoiceCalculation.subtotal * (InvoiceCalculation.taxRate / 100)
+    InvoiceCalculation.discountAmount = InvoiceCalculation.subtotal * (InvoiceCalculation.discountPercent / 100)
+    InvoiceCalculation.total = InvoiceCalculation.subtotal + InvoiceCalculation.taxAmount - InvoiceCalculation.discountAmount
+    
+    // Format for display
+    InvoiceCalculation.subtotalFormatted = currencyFormat(InvoiceCalculation.subtotal)
+    InvoiceCalculation.taxFormatted = currencyFormat(InvoiceCalculation.taxAmount)
+    InvoiceCalculation.discountFormatted = currencyFormat(InvoiceCalculation.discountAmount)
+    InvoiceCalculation.totalFormatted = currencyFormat(InvoiceCalculation.total)
+}
+
+// Input: { subtotal: 1000, taxRate: 8.5, discountPercent: 10 }
+// Output:
+// {
+//   "subtotalFormatted": "$1,000.00",
+//   "taxFormatted": "$85.00",
+//   "discountFormatted": "$100.00",
+//   "totalFormatted": "$985.00"
+// }
+```
+
+</TabItem>
+<TabItem value="reporting" label="Financial Reporting">
+
+```flow
+Schema FinancialReport {
+    number[] monthlyRevenue
+    number totalRevenue
+    number averageRevenue
+    number maxRevenue
+    string totalFormatted
+    string averageFormatted
+    string maxFormatted
+    string[] formattedMonthly
+}
+
+Mapping generateReport input FinancialReport output FinancialReport {
+    // Calculate metrics
+    FinancialReport.totalRevenue = sum(FinancialReport.monthlyRevenue, value -> value)
+    FinancialReport.averageRevenue = FinancialReport.totalRevenue / length(FinancialReport.monthlyRevenue)
+    FinancialReport.maxRevenue = sort(FinancialReport.monthlyRevenue, value, "descending")[0]
+    
+    // Format for display
+    FinancialReport.totalFormatted = currencyFormat(FinancialReport.totalRevenue)
+    FinancialReport.averageFormatted = currencyFormat(FinancialReport.averageRevenue)
+    FinancialReport.maxFormatted = currencyFormat(FinancialReport.maxRevenue, "INTEGER")
+    
+    // Format monthly values
+    FinancialReport.formattedMonthly = map(
+        FinancialReport.monthlyRevenue,
+        revenue -> currencyFormat(revenue)
+    )
+}
+```
+
+</TabItem>
+</Tabs>
+
+## Advanced Utility Functions
+
+### extract()
+Extract substring using range notation (covered in String Functions but commonly used as utility).
+
+**Syntax:**
+```flow
+result = extract(string, range)
+```
+
+**Examples:**
+```flow
+Schema DataExtraction {
+    string fullCode
+    string prefix
+    string suffix  
+    string middle
+}
+
+Mapping extractParts input DataExtraction output DataExtraction {
+    DataExtraction.prefix = extract(DataExtraction.fullCode, "0..3")      // First 3 characters
+    DataExtraction.suffix = extract(DataExtraction.fullCode, "-2..")      // Last 2 characters
+    DataExtraction.middle = extract(DataExtraction.fullCode, "3..8")      // Characters 3-8
+}
+
+// Input: { fullCode: "ABCD-1234-XYZ" }
+// Output: { prefix: "ABC", suffix: "YZ", middle: "D-123" }
+```
+
+### translateUnicode()
+Convert Unicode escape sequences to actual characters.
+
+**Syntax:**
+```flow
+result = translateUnicode(string)
+```
+
+**Examples:**
+```flow
+Schema UnicodeProcessor {
+    string encodedMessage
+    string decodedMessage
+    string processedText
+}
+
+Mapping processUnicodeData input UnicodeProcessor output UnicodeProcessor {
+    UnicodeProcessor.decodedMessage = translateUnicode(UnicodeProcessor.encodedMessage)
+    UnicodeProcessor.processedText = translateUnicode("Hello\\u0020World\\u0021")  // "Hello World!"
+}
+```
+
+## Real-World Examples
+
+### Comprehensive Order Processing System
+
+```flow
+Schema OrderProcessor {
+    string customerEmail
+    string backupEmail
+    string adminEmail
+    string finalEmail
+    number itemPrice
+    number shippingCost
+    number taxRate
+    number discountAmount
+    string orderId
+    string confirmationId
+    string trackingId
+    orderSummary {
+        string id
+        string email
+        string subtotalFormatted
+        string taxFormatted
+        string totalFormatted
+        string createdAt
+    }
+    string orderJson
+}
+
+Mapping processOrder input OrderProcessor output OrderProcessor {
+    // Generate unique identifiers
+    OrderProcessor.orderId = uuid()
+    OrderProcessor.confirmationId = uuid()
+    OrderProcessor.trackingId = uuid()
+    
+    // Select best email address
+    OrderProcessor.finalEmail = pickFirst(
+        OrderProcessor.customerEmail,
+        OrderProcessor.backupEmail,
+        OrderProcessor.adminEmail
+        -> contains(it, "@") && length(it) > 5
+    )
+    
+    // Calculate pricing
+    subtotal = OrderProcessor.itemPrice + OrderProcessor.shippingCost
+    taxAmount = subtotal * (OrderProcessor.taxRate / 100)
+    finalTotal = subtotal + taxAmount - OrderProcessor.discountAmount
+    
+    // Create order summary
+    OrderProcessor.orderSummary.id = OrderProcessor.orderId
+    OrderProcessor.orderSummary.email = OrderProcessor.finalEmail
+    OrderProcessor.orderSummary.subtotalFormatted = currencyFormat(subtotal)
+    OrderProcessor.orderSummary.taxFormatted = currencyFormat(taxAmount)
+    OrderProcessor.orderSummary.totalFormatted = currencyFormat(finalTotal)
+    OrderProcessor.orderSummary.createdAt = currentDate("yyyy-MM-dd'T'HH:mm:ss'Z'")
+    
+    // Serialize for external systems
+    OrderProcessor.orderJson = json({
+        orderId: OrderProcessor.orderId,
+        confirmationId: OrderProcessor.confirmationId,
+        trackingId: OrderProcessor.trackingId,
+        customerEmail: OrderProcessor.finalEmail,
+        pricing: {
+            subtotal: currencyFormat(subtotal),
+            tax: currencyFormat(taxAmount),
+            total: currencyFormat(finalTotal)
+        },
+        metadata: {
+            processedAt: currentDate("yyyy-MM-dd'T'HH:mm:ss'Z'"),
+            version: "2.1.0"
+        }
+    })
+}
+```
+
+### Configuration Management System
+
+```flow
+Schema ConfigManager {
+    string userTheme
+    string companyTheme
+    string systemTheme
+    number userTimeout
+    number defaultTimeout
+    string userLanguage
+    string browserLanguage
+    string systemLanguage
+    finalConfig {
+        string theme
+        number timeoutMinutes  
+        string language
+        string configId
+        string version
+    }
+    string configJson
+}
+
+Mapping resolveConfiguration input ConfigManager output ConfigManager {
+    // Resolve configuration with fallbacks
+    ConfigManager.finalConfig.theme = pickFirst(
+        ConfigManager.userTheme,
+        ConfigManager.companyTheme,
+        ConfigManager.systemTheme,
+        "default"
+    )
+    
+    ConfigManager.finalConfig.timeoutMinutes = pickFirst(
+        ConfigManager.userTimeout,
+        ConfigManager.defaultTimeout,
+        30  // hardcoded fallback
+        -> it > 0 && it <= 1440  // Valid range: 1-1440 minutes
+    )
+    
+    ConfigManager.finalConfig.language = pickFirst(
+        ConfigManager.userLanguage,
+        ConfigManager.browserLanguage,
+        ConfigManager.systemLanguage,
+        "en-US"
+        -> length(it) >= 2
+    )
+    
+    // Generate metadata
+    ConfigManager.finalConfig.configId = uuid()
+    ConfigManager.finalConfig.version = "1.0.0"
+    
+    // Serialize for storage/transmission
+    ConfigManager.configJson = json({
+        id: ConfigManager.finalConfig.configId,
+        version: ConfigManager.finalConfig.version,
+        settings: {
+            theme: ConfigManager.finalConfig.theme,
+            timeoutMinutes: ConfigManager.finalConfig.timeoutMinutes,
+            language: ConfigManager.finalConfig.language
+        },
+        metadata: {
+            generatedAt: currentDate("yyyy-MM-dd'T'HH:mm:ss'Z'"),
+            generatedBy: "ConfigManager"
+        }
+    })
+}
+```
+
+### Data Processing & Validation Pipeline
+
+```flow
+Schema DataPipeline {
+    rawData {
+        string primaryId
+        string secondaryId
+        string backupId
+        number score1
+        number score2  
+        number score3
+        number amount
+        string email1
+        string email2
+        string message
+    }
+    processedData {
+        string finalId
+        number bestScore
+        string formattedAmount
+        string validEmail
+        string processedMessage
+        string sessionId
+    }
+    auditLog {
+        string processingId
+        string timestamp
+        string rawDataJson
+        string processedDataJson
+    }
+}
+
+Mapping processDataPipeline input DataPipeline output DataPipeline {
+    // ID resolution with validation
+    DataPipeline.processedData.finalId = pickFirst(
+        DataPipeline.rawData.primaryId,
+        DataPipeline.rawData.secondaryId,
+        DataPipeline.rawData.backupId,
+        uuid()  // Generate if none available
+        -> length(it) > 5
+    )
+    
+    // Score selection (highest valid score)
+    DataPipeline.processedData.bestScore = pickFirst(
+        DataPipeline.rawData.score1,
+        DataPipeline.rawData.score2,
+        DataPipeline.rawData.score3,
+        0  // Default fallback
+        -> it >= 0 && it <= 100
+    )
+    
+    // Amount formatting
+    DataPipeline.processedData.formattedAmount = currencyFormat(DataPipeline.rawData.amount)
+    
+    // Email validation and selection
+    DataPipeline.processedData.validEmail = pickFirst(
+        DataPipeline.rawData.email1,
+        DataPipeline.rawData.email2,
+        "noreply@example.com"  // System fallback
+        -> contains(it, "@") && contains(it, ".") && length(it) > 7
+    )
+    
+    // Message processing
+    DataPipeline.processedData.processedMessage = translateUnicode(
+        upperCase(DataPipeline.rawData.message)
+    )
+    
+    // Generate session ID
+    DataPipeline.processedData.sessionId = uuid()
+    
+    // Create audit trail
+    DataPipeline.auditLog.processingId = uuid()
+    DataPipeline.auditLog.timestamp = currentDate("yyyy-MM-dd'T'HH:mm:ss'Z'")
+    DataPipeline.auditLog.rawDataJson = json(DataPipeline.rawData)
+    DataPipeline.auditLog.processedDataJson = json(DataPipeline.processedData)
+}
+```
+
+## Best Practices
+
+### 1. Use UUID for Unique Identifiers
+```flow
+//  Good: Generate unique IDs for entities
+orderId = uuid()
+sessionId = uuid()
+correlationId = uuid()
+
+//  Good: Use in service headers
+Service apiCall {
+    @Header X-Request-ID -> ${uuid()}
+    @Header X-Correlation-ID -> ${correlationId}
+}
+```
+
+### 2. Provide Fallback Values with pickFirst
+```flow
+//  Good: Comprehensive fallback chain
+finalValue = pickFirst(
+    userSetting,
+    companySetting,
+    systemDefault,
+    "hardcoded-fallback"
+)
+
+//  Good: Conditional selection with validation
+validEmail = pickFirst(
+    primaryEmail,
+    secondaryEmail,
+    "default@company.com"
+    -> contains(it, "@") && length(it) > 5
+)
+```
+
+### 3. Format Currency Consistently
+```flow
+//  Good: Consistent currency formatting
+displayPrice = currencyFormat(price, "DECIMAL")
+summaryPrice = currencyFormat(price, "INTEGER")
+
+//  Good: Handle different data types
+formattedAmount = currencyFormat(stringAmount)  // Handles string input
+```
+
+### 4. Use JSON for Complex Data Serialization
+```flow
+//  Good: Serialize complex objects for APIs
+apiPayload = json({
+    orderId: uuid(),
+    customer: customerData,
+    items: orderItems,
+    metadata: {
+        processedAt: currentDate("yyyy-MM-dd'T'HH:mm:ss'Z'"),
+        version: "1.0"
+    }
+})
+
+//  Good: Create audit logs
+auditEntry = json({
+    action: "order_created",
+    userId: userId,
+    data: orderData,
+    timestamp: currentDate("ms")
+})
+```
+
+## Related Topics
+
+- **[String Functions](string-functions)** - Text processing and manipulation
+- **[Date Functions](date-functions)** - Date and time operations
+- **[Collection Functions](collection-functions)** - Array and list operations
+- **[Value Node](/language/nodes/value)** - Using utility functions in dynamic values
+- **[Service Node](/language/nodes/service)** - Generating headers and payloads
+

@@ -1,0 +1,197 @@
+---
+title: Functions Reference
+description: Complete reference for Wolf DSL built-in functions for data manipulation and transformation
+sidebar_position: 1
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Wolf DSL Functions Reference
+
+Built-in functions for data transformation, manipulation, and business logic. Functions can be used in expressions within **[Value nodes](/language/nodes/value)**, **[Mapping nodes](/language/nodes/mapping)**, and conditional statements.
+
+## Function Categories
+
+### **String Functions**
+Functions for text manipulation and string processing:
+
+| Function | Description | Example |
+|----------|-------------|---------|
+| `concat()` | Concatenate multiple strings | `concat("Hello", " ", "World")` |
+| `join()` | Join array elements with delimiter | `join(names, ", ")` |
+| `split()` | Split string by delimiter | `split("a,b,c", ",")` |
+| `contains()` | Check if string contains substring | `contains(text, "search")` |
+| `replace()` | Replace text in string | `replace(text, "old", "new")` |
+| `upperCase()` | Convert to uppercase | `upperCase("hello")` |
+| `lowerCase()` | Convert to lowercase | `lowerCase("WORLD")` |
+| `length()` | Get string/array length | `length("hello")` |
+
+### **Date Functions**
+Functions for date manipulation and formatting:
+
+| Function | Description | Example |
+|----------|-------------|---------|
+| `currentDate()` | Get current date/time | `currentDate("yyyy-MM-dd")` |
+| `dateFormat()` | Format dates between formats | `dateFormat("ms", "yyyy-MM-dd", timestamp)` |
+| `addToDate()` | Add time to date | `addToDate(date, "yyyy-MM-dd", 30, "Days")` |
+| `dayDifference()` | Calculate days between dates | `dayDifference(start, end, "yyyy-MM-dd")` |
+| `dayOfWeek()` | Get day of week | `dayOfWeek("2023-12-25", "yyyy-MM-dd")` |
+| `monthName()` | Get month name | `monthName("2023-12-25", "yyyy-MM-dd")` |
+
+### **Collection Functions**
+Functions for array and list manipulation:
+
+| Function | Description | Example |
+|----------|-------------|---------|
+| `filter()` | Filter array by condition | `filter(items, item -> item.active == true)` |
+| `map()` | Transform array elements | `map(items, item -> item.name)` |
+| `sort()` | Sort array elements | `sort(items, item.priority)` |
+| `dedup()` | Remove duplicate elements | `dedup(items)` |
+| `shuffle()` | Randomize array order | `shuffle(items)` |
+| `findFirst()` | Find first matching element | `findFirst(items, item -> item.id == "123")` |
+| `last()` | Get last element | `last(items)` |
+| `remove()` | Remove elements by condition | `remove(items, item -> item.expired == true)` |
+
+### **Utility Functions**
+General purpose utility functions:
+
+| Function | Description | Example |
+|----------|-------------|---------|
+| `uuid()` | Generate unique identifier | `uuid()` |
+| `json()` | Convert to JSON string | `json(object)` |
+| `pickFirst()` | Return first non-null value | `pickFirst(val1, val2, "default")` |
+| `extract()` | Extract substring by range | `extract(text, range)` |
+| `currencyFormat()` | Format currency values | `currencyFormat(123.45, "DECIMAL")` |
+| `translateUnicode()` | Convert Unicode characters | `translateUnicode(text)` |
+
+### **Math Functions**
+Mathematical operations and calculations:
+
+| Function | Description | Example |
+|----------|-------------|---------|
+| `sum()` | Sum array values | `sum(numbers)` |
+| `count()` | Count elements | `count(items)` |
+
+### **Custom Functions**
+User-defined function integration:
+
+| Function | Description | Example |
+|----------|-------------|---------|
+| `custom()` | Call custom function | `custom("myFunction", arg1, arg2)` |
+
+## Usage in Wolf DSL
+
+Functions can be used in several contexts:
+
+### In Value Nodes
+```flow
+value dynamicData -> UserData {
+    id: ${uuid()}
+    name: ${upperCase("john doe")}
+    email: ${lowerCase("USER@EXAMPLE.COM")}
+    timestamp: ${currentDate("yyyy-MM-dd'T'HH:mm:ss'Z'")}
+}
+```
+
+### In Mapping Transformations
+```flow
+Mapping userTransform input RawUser output ProcessedUser {
+    ProcessedUser.fullName = concat(RawUser.firstName, " ", RawUser.lastName)
+    ProcessedUser.activeItems = filter(RawUser.items, item -> item.active == true)
+    ProcessedUser.itemCount = length(ProcessedUser.activeItems)
+    ProcessedUser.lastLoginFormatted = dateFormat("ms", "MMM dd, yyyy", RawUser.lastLogin)
+}
+```
+
+### In Flow Conditions
+```flow
+Flow dataProcessingFlow {
+    Start inputData {
+        transition {
+            length(inputData.items) > 0 ? processItems : handleEmptyData
+        }
+    }
+    processItems {}
+    handleEmptyData {}
+}
+```
+
+### In Service Configurations
+```flow
+Service apiService method POST as callAPI {
+    Path -> ${"/users/" + uuid()}
+    @Header RequestId -> ${uuid()}
+    @Header Timestamp -> ${currentDate("yyyy-MM-dd'T'HH:mm:ss'Z'")}
+    @Body -> ${json(requestData)}
+}
+```
+
+## Function Chaining
+
+Functions can be chained together for complex transformations:
+
+```flow
+processedNames = map(
+    filter(users, user -> user.isActive == true),
+    user -> upperCase(concat(user.firstName, " ", user.lastName))
+)
+
+formattedDate = dateFormat(
+    "ms", 
+    "MMM dd, yyyy", 
+    currentDate("ms")
+)
+
+uniqueSortedTags = sort(
+    dedup(
+        map(products, product -> lowerCase(product.category))
+    ),
+    tag
+)
+```
+
+## Error Handling
+
+Functions handle errors gracefully:
+
+- **Null Safety**: Most functions handle null inputs gracefully
+- **Type Validation**: Functions validate input types at runtime
+- **Fallback Values**: Use `pickFirst()` for default values
+
+```flow
+safeValue = pickFirst(data.value, data.fallback, "default")
+safeLength = length(data.items) || 0
+safeDate = dateFormat("ms", "yyyy-MM-dd", timestamp) || "unknown"
+```
+
+## Performance Considerations
+
+- **Collection Functions**: Operations like `filter()` and `map()` are optimized for large datasets
+- **String Functions**: Text operations are UTF-8 aware and performant
+- **Date Functions**: Date parsing and formatting is timezone-aware
+- **Caching**: Deterministic functions may be cached by the runtime
+
+## Next Steps
+
+Explore detailed documentation for each function category:
+
+- **[String Functions](string-functions)** - Text manipulation and processing
+- **[Date Functions](date-functions)** - Date/time operations and formatting  
+- **[Collection Functions](collection-functions)** - Array and list operations
+- **[Utility Functions](utility-functions)** - General purpose utilities
+
+## Quick Reference
+
+**Data Validation**:
+```flow
+isValid = length(name) > 0 && contains(email, "@")
+```
+
+**Function Chaining**:
+```flow
+activeUserNames = map(
+    filter(users, user -> user.status == "active"),
+    user -> user.name
+)
+```

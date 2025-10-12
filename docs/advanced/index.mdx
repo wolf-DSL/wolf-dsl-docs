@@ -1,0 +1,225 @@
+---
+title: Advanced Topics
+description: Advanced concepts, best practices, testing, and troubleshooting for Wolf DSL development
+sidebar_position: 1
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Advanced Topics
+
+Advanced concepts, best practices, testing, and troubleshooting for Wolf DSL development.
+
+## **[Best Practices](best-practices)**
+
+Essential guidelines and patterns for maintainable, efficient Wolf DSL development:
+
+- **Schema Design**: Type safety and reusability patterns
+- **Node Organization**: Structuring flows for clarity and performance  
+- **Expression Patterns**: Writing maintainable and efficient expressions
+- **Error Handling**: Robust error management strategies
+- **Performance Optimization**: Best practices for scalable flows
+
+**Key Topics:**
+- Schema composition and reuse
+- Service configuration patterns  
+- Mapping optimization techniques
+- Flow control best practices
+- Code organization strategies
+
+## Testing & Validation
+
+Testing strategies covered in the [Best Practices](best-practices) guide:
+
+- **Unit Testing**: Testing individual nodes and mappings
+- **Integration Testing**: End-to-end flow validation
+- **Test Data Management**: Creating and managing test fixtures
+- **Validation Strategies**: Data validation and error testing
+
+## Performance & Optimization
+
+Performance optimization techniques covered in the [Best Practices](best-practices) guide:
+
+- **Flow Optimization**: Designing efficient execution paths
+- **Service Integration**: Optimizing external service calls
+- **Data Processing**: Efficient collection and array operations
+- **Expression optimization**: Writing performant expressions
+
+## Quick Reference
+
+### Common Advanced Patterns
+
+**Complex Data Transformations:**
+```flow
+Mapping advancedTransform input ComplexData output ProcessedData {
+    // Multi-step transformation with error handling
+    step1 = if inputData != null 
+            then processData(inputData) 
+            else getDefaultData()
+    
+    step2 = filter(step1.items, item -> item.isValid && item.score > threshold)
+    
+    ProcessedData.result = map(step2, item -> {
+        id = item.id,
+        enrichedData = enrichItem(item),
+        metadata = createMetadata(item)
+    })
+}
+```
+
+**Service Orchestration:**
+```flow
+Flow orchestrationFlow {
+    Start validateInput {
+        transition {
+            input.isValid ? callPrimaryService : handleValidationError
+        }
+    }
+    
+    callPrimaryService as primaryService {
+        transition {
+            primaryService.success ? 
+                (primaryService.requiresSecondary ? callSecondaryService : finalize) :
+                handlePrimaryError
+        }
+    }
+    
+    callSecondaryService as secondaryService {
+        transition {
+            secondaryService.success ? finalize : handleSecondaryError
+        }
+    }
+    
+    finalize {}
+    handleValidationError {}
+    handlePrimaryError {}
+    handleSecondaryError {}
+}
+```
+
+**Configuration Management:**
+```flow
+Schema EnvironmentConfig {
+    string environment
+    string apiBaseUrl
+    number timeout
+    boolean debugEnabled
+    retryPolicy {
+        number maxRetries
+        number backoffMs
+    }
+}
+
+value prodConfig -> EnvironmentConfig {
+    environment: "production"
+    apiBaseUrl: "https://api.production.com"
+    timeout: 5000
+    debugEnabled: false
+    retryPolicy: {
+        maxRetries: 3
+        backoffMs: 1000
+    }
+}
+
+value devConfig -> EnvironmentConfig {
+    environment: "development"
+    apiBaseUrl: "https://api.dev.com"
+    timeout: 10000
+    debugEnabled: true
+    retryPolicy: {
+        maxRetries: 1
+        backoffMs: 500
+    }
+}
+```
+
+### Performance Optimization Checklist
+
+** Schema Design**
+- Use appropriate data types
+- Minimize nested structures where possible
+- Leverage schema reuse and composition
+- Document schema relationships
+
+** Mapping Efficiency**
+- Break complex mappings into logical steps
+- Use intermediate variables for reused calculations
+- Minimize redundant function calls
+- Leverage collection functions efficiently
+
+** Service Integration**
+- Use asynchronous services when possible
+- Implement proper error handling and retries
+- Cache static data appropriately
+- Monitor service performance metrics
+
+** Flow Control**
+- Design efficient decision trees
+- Minimize unnecessary node transitions
+- Use early exits for error conditions
+- Implement proper timeout handling
+
+### Testing Strategy Framework
+
+**Unit Testing Approach:**
+```java
+@CSMTest(flow = "userProcessingFlow")
+public class UserProcessingFlowTest {
+    
+    @Test
+    @CSMTest(type = "mapping", id = "userDataMapping")
+    public void testUserDataMapping() {
+        // Test individual mapping logic
+        Map<String, Object> input = createTestInput();
+        CSMTestExecutor executor = CSMTestExecutor.builder()
+            .inputMap(input)
+            .build();
+        
+        CSMTestResult result = executor.execute();
+        assertThat(result.getOutput()).isEqualTo(expectedOutput);
+    }
+    
+    @Test  
+    @CSMTest(type = "flow")
+    public void testCompleteFlow() {
+        // Test entire flow execution
+        CSMTestResult result = executeFlowTest();
+        validateFlowExecution(result);
+    }
+}
+```
+
+**Integration Testing Pattern:**
+```java
+@SpringBootTest
+@CSMTest(flow = "integrationFlow")
+public class IntegrationFlowTest {
+    
+    @MockBean
+    private ExternalService externalService;
+    
+    @Test
+    public void testServiceIntegration() {
+        // Mock external dependencies
+        when(externalService.process(any())).thenReturn(mockResponse);
+        
+        // Execute flow with mocked services
+        CSMTestResult result = executeFlow();
+        
+        // Verify interactions and results
+        verify(externalService).process(expectedRequest);
+        assertThat(result.isSuccess()).isTrue();
+    }
+}
+```
+
+## Next Steps
+
+Explore each advanced topic to master Wolf DSL development:
+
+1. **Start with [Best Practices](best-practices)** - Establish good development habits
+2. **Review Testing Strategies** - Covered in the best practices guide
+3. **Apply Performance Guidelines** - Optimization techniques in best practices
+4. **Master Debugging Techniques** - Troubleshooting patterns in best practices
+

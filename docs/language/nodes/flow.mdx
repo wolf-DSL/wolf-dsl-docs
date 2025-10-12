@@ -1,0 +1,378 @@
+---
+title: Flow Node
+description: The main orchestration node that defines execution paths and transitions in Wolf DSL
+sidebar_position: 1
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Flow Node
+
+The **Flow node** is the main orchestration component where execution starts in Wolf DSL. It defines the sequence of execution and supports conditional transitions based on data and expressions, allowing you to create dynamic execution paths.
+
+## Syntax
+
+```flow
+Flow [flowName] {
+    Start [startNode] {
+        transition {
+           <transition_body> 
+        }
+    }
+         
+    [node] {
+        transition {
+            <transition_body>
+        }
+    }
+
+    [node] {}
+}
+```
+
+### Parameters
+
+- **`flowName`**: The name of the flow
+- **`startNode`**: The initial state where execution begins
+- **`node`**: Subsequent states in the flow execution path
+
+### Referenced Node Types
+
+Flow nodes can reference any of these node types:
+- **[Service](service)** - REST and GraphQL API calls
+- **[Mapping](mapping)** - Data transformation logic
+- **[Schema](schema)** - Data structure definitions  
+- **[Value](value)** - Static and dynamic data
+- **GraphQLService** - GraphQL-specific service calls
+
+## Transitions
+
+Transitions define how execution moves between nodes. They are optional - if omitted, the flow terminates at that node.
+
+### Single Node Transition
+
+The simplest transition always moves to one specific node:
+
+```flow
+transition {
+    nextNode
+}
+```
+
+**Example:**
+```flow
+Flow userProcessingFlow {
+    Start userData {
+        transition {
+            validateUser
+        }
+    }
+    
+    validateUser {
+        transition {
+            transformUser
+        }
+    }
+    
+    transformUser {}
+}
+```
+
+### Conditional Transitions (Ternary)
+
+Use conditional expressions for binary decision points:
+
+```flow
+transition {
+    condition ? trueNode : falseNode
+}
+```
+
+**Example:**
+```flow
+Flow conditionalFlow {
+    Start userRequest {
+        transition {
+            userRequest.useCache == true ? getCachedUser : fetchUserFromAPI
+        }
+    }
+    
+    getCachedUser {}
+    fetchUserFromAPI {}
+}
+```
+
+### Multi-way Branching (When-Then)
+
+For complex decision trees with multiple conditions:
+
+```flow
+transition {
+    when [condition1] then [node1]
+    when [condition2] then [node2]
+    when [condition3] then [node3]
+    otherwise do [defaultNode]
+}
+```
+
+Each condition is evaluated sequentially. The first condition that evaluates to `true` determines the transition. If no conditions match, the `otherwise` clause provides the default path.
+
+**Example:**
+```flow
+Flow priorityBasedFlow {
+    Start request {
+        transition {
+            when request.priority == "high" then highPriorityHandler
+            when request.priority == "medium" then mediumPriorityHandler
+            when request.urgency == "critical" then emergencyHandler
+            otherwise do standardHandler
+        }
+    }
+    
+    highPriorityHandler {}
+    mediumPriorityHandler {}
+    emergencyHandler {}
+    standardHandler {}
+}
+```
+
+## Complex Examples
+
+### Service Orchestration Flow
+
+```flow
+Schema UserRequest {
+    string userId
+    boolean useCache
+}
+
+Schema User {
+    string id
+    string name
+    string email
+    boolean isActive
+}
+
+Flow userServiceFlow {
+    Start userRequest {
+        transition {
+            userRequest.useCache == true ? getCachedUser : fetchUserFromAPI
+        }
+    }
+    
+    getCachedUser {
+        transition {
+            when User.isActive == true then enrichUserData
+            when User.isActive == false then deactivateUser
+            otherwise do logError
+        }
+    }
+    
+    fetchUserFromAPI {
+        transition {
+            enrichUserData
+        }
+    }
+    
+    enrichUserData {}
+    deactivateUser {}
+    logError {}
+}
+```
+
+### Error Handling Flow
+
+```flow
+Flow resilientFlow {
+    Start inputData {
+        transition {
+            @Config("primary.service.enabled") == "true" ? primaryService : fallbackService
+        }
+    }
+    
+    primaryService {
+        transition {
+            when @Config("transform.enabled") == "true" then transformData
+            otherwise do outputData
+        }
+    }
+    
+    fallbackService {
+        transition {
+            transformData
+        }
+    }
+    
+    transformData {
+        transition {
+            outputData
+        }
+    }
+    
+    outputData {}
+}
+```
+
+### Data Processing Pipeline
+
+```flow
+Flow dataProcessingPipeline {
+    Start rawData {
+        transition {
+            when rawData.format == "json" then parseJSON
+            when rawData.format == "xml" then parseXML
+            when rawData.format == "csv" then parseCSV
+            otherwise do handleUnsupportedFormat
+        }
+    }
+    
+    parseJSON {
+        transition { validateData }
+    }
+    
+    parseXML {
+        transition { validateData }
+    }
+    
+    parseCSV {
+        transition { validateData }
+    }
+    
+    validateData {
+        transition {
+            validationResult.isValid == true ? transformData : handleValidationError
+        }
+    }
+    
+    transformData {
+        transition { saveData }
+    }
+    
+    saveData {}
+    handleUnsupportedFormat {}
+    handleValidationError {}
+}
+```
+
+## Best Practices
+
+### 1. Clear Naming
+Use descriptive names for flows and nodes:
+
+```flow
+//  Good: Descriptive names
+Flow userRegistrationFlow {
+    Start userRegistrationRequest {
+        transition { validateUserInput }
+    }
+    validateUserInput {
+        transition { createUserAccount }
+    }
+    createUserAccount {}
+}
+
+//  Avoid: Generic names
+Flow flow1 {
+    Start data {
+        transition { node1 }
+    }
+    node1 {}
+}
+```
+
+### 2. Logical Grouping
+Group related processing steps together:
+
+```flow
+//  Good: Logical flow progression
+Flow orderProcessingFlow {
+    Start orderRequest {
+        transition { validateOrder }
+    }
+    validateOrder {
+        transition { calculatePricing }
+    }
+    calculatePricing {
+        transition { processPayment }
+    }
+    processPayment {
+        transition { fulfillOrder }
+    }
+    fulfillOrder {}
+}
+```
+
+### 3. Error Handling
+Always plan for failure scenarios:
+
+```flow
+//  Good: Includes error handling
+Flow robustFlow {
+    Start request {
+        transition {
+            @Config("service.available") == "true" ? primaryService : fallbackService
+        }
+    }
+    primaryService {
+        transition {
+            response.success == true ? processResult : handleError
+        }
+    }
+    fallbackService {}
+    processResult {}
+    handleError {}
+}
+```
+
+### 4. Avoid Deep Nesting
+Keep transition logic readable:
+
+```flow
+//  Good: Clear, flat structure
+Flow userFlow {
+    Start user {
+        transition {
+            when user.type == "admin" then adminHandler
+            when user.type == "premium" then premiumHandler
+            when user.type == "basic" then basicHandler
+            otherwise do defaultHandler
+        }
+    }
+    adminHandler {}
+    premiumHandler {}
+    basicHandler {}
+    defaultHandler {}
+}
+
+//  Avoid: Deeply nested conditions
+Flow complexFlow {
+    Start data {
+        transition {
+            data.type == "A" ? (data.subtype == "1" ? nodeA1 : nodeA2) : (data.type == "B" ? nodeB : nodeDefault)
+        }
+    }
+    // This becomes hard to read and maintain
+}
+```
+
+## Execution Model
+
+Wolf DSL flows execute with these characteristics:
+
+- **Single Entry Point**: Every flow starts at the `Start` node
+- **Deterministic**: Given the same input, flows produce consistent results
+- **Conditional Branching**: Runtime decisions based on data and configuration
+- **Terminal Nodes**: Nodes without transitions end the flow execution
+- **Type Safety**: All referenced nodes must exist and be properly typed
+
+## Related Topics
+
+- **[Service Node](service)** - Making HTTP and GraphQL calls
+- **[Mapping Node](mapping)** - Data transformation and manipulation
+- **[Expression System](/language/expressions)** - Writing conditions and calculations
+- **[Installation Guide](/getting-started/installation)** - Setting up configuration and environment
+
+---
+
+*Flow nodes are the backbone of Wolf DSL, orchestrating complex business processes through simple, declarative configuration.*

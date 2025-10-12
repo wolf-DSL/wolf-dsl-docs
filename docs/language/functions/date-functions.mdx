@@ -1,0 +1,684 @@
+---
+title: Date Functions
+description: Date and time manipulation functions for formatting, calculation, and processing in Wolf DSL
+sidebar_position: 3
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Date Functions
+
+Date and time manipulation functions for formatting, calculation, and processing in Wolf DSL.
+
+## Supported Date Formats
+
+Wolf DSL supports these standard date formats:
+
+| Format | Description | Example |
+|--------|-------------|---------|
+| `"MM/dd/yyyy"` | US format with slashes | `"12/25/2023"` |
+| `"yyyyMMdd"` | Compact numeric format | `"20231225"` |
+| `"yyyy-MM-dd"` | ISO date format | `"2023-12-25"` |
+| `"yyyy-MM-dd'T'HH:mm:ss'Z'"` | ISO datetime with UTC | `"2023-12-25T10:30:00Z"` |
+| `"yyyy-MM-dd'T'HH:mm:ssZ"` | ISO datetime with timezone | `"2023-12-25T10:30:00-0800"` |
+| `"ms"` | Milliseconds since epoch | `1703505000000` |
+
+## currentDate()
+
+Gets the current date and time in the specified format.
+
+**Syntax:**
+```flow
+result = currentDate()                    // Default: MM/dd/yyyy
+result = currentDate(format)              // Custom format
+```
+
+**Parameters:**
+- `format` *(optional)*: Date format string (default: `"MM/dd/yyyy"`)
+
+**Returns:** Current date/time as string or number (for `"ms"`)
+
+**Examples:**
+
+<Tabs>
+<TabItem value="formats" label="Different Formats">
+
+```flow
+Schema CurrentDateTime {
+    string defaultFormat
+    string isoDate
+    string compactDate
+    string isoDateTime
+    number timestamp
+    string customFormat
+}
+
+Mapping getCurrentDateTime output CurrentDateTime {
+    CurrentDateTime.defaultFormat = currentDate()                    // "12/25/2023"
+    CurrentDateTime.isoDate = currentDate("yyyy-MM-dd")             // "2023-12-25"
+    CurrentDateTime.compactDate = currentDate("yyyyMMdd")           // "20231225"
+    CurrentDateTime.isoDateTime = currentDate("yyyy-MM-dd'T'HH:mm:ss'Z'") // "2023-12-25T10:30:00Z"
+    CurrentDateTime.timestamp = currentDate("ms")                   // 1703505000000
+    CurrentDateTime.customFormat = currentDate("MMM dd, yyyy")      // "Dec 25, 2023"
+}
+```
+
+</TabItem>
+<TabItem value="usage" label="Real-World Usage">
+
+```flow
+Schema EventData {
+    string eventId
+    string createdAt
+    number createdTimestamp
+    string logEntry
+}
+
+value newEvent -> EventData {
+    eventId: ${uuid()}
+    createdAt: ${currentDate("yyyy-MM-dd'T'HH:mm:ss'Z'")}
+    createdTimestamp: ${currentDate("ms")}
+    logEntry: ${"Event created on " + currentDate("MMM dd, yyyy 'at' HH:mm")}
+}
+
+// Result:
+// {
+//   "eventId": "550e8400-e29b-41d4-a716-446655440000",
+//   "createdAt": "2023-12-25T10:30:00Z",
+//   "createdTimestamp": 1703505000000,
+//   "logEntry": "Event created on Dec 25, 2023 at 10:30"
+// }
+```
+
+</TabItem>
+</Tabs>
+
+## dateFormat()
+
+Converts dates between different formats with optional timezone support.
+
+**Syntax:**
+```flow
+result = dateFormat(inputFormat, outputFormat, dateValue)
+result = dateFormat(inputFormat, outputFormat, dateValue, inputTimezone, outputTimezone)
+```
+
+**Parameters:**
+- `inputFormat`: Current format of the date
+- `outputFormat`: Desired output format  
+- `dateValue`: Date value to convert
+- `inputTimezone` *(optional)*: Input timezone (e.g., `"UTC"`, `"America/New_York"`)
+- `outputTimezone` *(optional)*: Output timezone
+
+**Returns:** Formatted date string
+
+**Examples:**
+
+<Tabs>
+<TabItem value="basic" label="Basic Conversion">
+
+```flow
+Schema DateConversion {
+    string originalDate
+    string isoFormat
+    string compactFormat
+    string usFormat
+    number timestamp
+}
+
+Mapping convertDates input DateConversion output DateConversion {
+    DateConversion.isoFormat = dateFormat("MM/dd/yyyy", "yyyy-MM-dd", DateConversion.originalDate)
+    DateConversion.compactFormat = dateFormat("yyyy-MM-dd", "yyyyMMdd", DateConversion.isoFormat)
+    DateConversion.usFormat = dateFormat("yyyyMMdd", "MM/dd/yyyy", DateConversion.compactFormat)
+    DateConversion.timestamp = dateFormat("MM/dd/yyyy", "ms", DateConversion.originalDate)
+}
+
+// Input: { originalDate: "12/25/2023" }
+// Output:
+// {
+//   "isoFormat": "2023-12-25",
+//   "compactFormat": "20231225", 
+//   "usFormat": "12/25/2023",
+//   "timestamp": 1703505000000
+// }
+```
+
+</TabItem>
+<TabItem value="timezone" label="Timezone Conversion">
+
+```flow
+Schema TimezoneConversion {
+    string utcDateTime
+    string eastCoastTime
+    string westCoastTime
+    string europeanTime
+}
+
+Mapping convertTimezones input TimezoneConversion output TimezoneConversion {
+    TimezoneConversion.eastCoastTime = dateFormat(
+        "yyyy-MM-dd'T'HH:mm:ss'Z'",
+        "yyyy-MM-dd'T'HH:mm:ssZ", 
+        TimezoneConversion.utcDateTime,
+        "UTC",
+        "America/New_York"
+    )
+    
+    TimezoneConversion.westCoastTime = dateFormat(
+        "yyyy-MM-dd'T'HH:mm:ss'Z'",
+        "yyyy-MM-dd'T'HH:mm:ssZ",
+        TimezoneConversion.utcDateTime,
+        "UTC", 
+        "America/Los_Angeles"
+    )
+    
+    TimezoneConversion.europeanTime = dateFormat(
+        "yyyy-MM-dd'T'HH:mm:ss'Z'",
+        "yyyy-MM-dd'T'HH:mm:ssZ",
+        TimezoneConversion.utcDateTime,
+        "UTC",
+        "Europe/London"
+    )
+}
+
+// Input: { utcDateTime: "2023-12-25T15:30:00Z" }
+// Output:
+// {
+//   "eastCoastTime": "2023-12-25T10:30:00-0500",
+//   "westCoastTime": "2023-12-25T07:30:00-0800", 
+//   "europeanTime": "2023-12-25T15:30:00+0000"
+// }
+```
+
+</TabItem>
+</Tabs>
+
+## addToDate()
+
+Adds or subtracts time from a date.
+
+**Syntax:**
+```flow
+result = addToDate(baseDate, format, amount, unit)
+```
+
+**Parameters:**
+- `baseDate`: Starting date value
+- `format`: Date format for input and output
+- `amount`: Number to add (negative to subtract)
+- `unit`: Time unit (`"Days"`, `"Weeks"`, `"Months"`, `"Years"`)
+
+**Returns:** New date with time added/subtracted
+
+**Examples:**
+
+<Tabs>
+<TabItem value="basic" label="Basic Operations">
+
+```flow
+Schema DateCalculation {
+    string baseDate
+    string nextWeek
+    string lastMonth
+    string nextYear
+    string previousDay
+}
+
+Mapping calculateDates input DateCalculation output DateCalculation {
+    DateCalculation.nextWeek = addToDate(DateCalculation.baseDate, "yyyy-MM-dd", 7, "Days")
+    DateCalculation.lastMonth = addToDate(DateCalculation.baseDate, "yyyy-MM-dd", -1, "Months")  
+    DateCalculation.nextYear = addToDate(DateCalculation.baseDate, "yyyy-MM-dd", 1, "Years")
+    DateCalculation.previousDay = addToDate(DateCalculation.baseDate, "yyyy-MM-dd", -1, "Days")
+}
+
+// Input: { baseDate: "2023-12-25" }
+// Output:
+// {
+//   "nextWeek": "2024-01-01",
+//   "lastMonth": "2023-11-25",
+//   "nextYear": "2024-12-25", 
+//   "previousDay": "2023-12-24"
+// }
+```
+
+</TabItem>
+<TabItem value="business" label="Business Logic">
+
+```flow
+Schema SubscriptionManager {
+    string startDate
+    string trialEndDate
+    string subscriptionEndDate
+    string renewalDate
+    string gracePeriodEnd
+}
+
+Mapping calculateSubscriptionDates input SubscriptionManager output SubscriptionManager {
+    // 30-day free trial
+    SubscriptionManager.trialEndDate = addToDate(
+        SubscriptionManager.startDate, 
+        "yyyy-MM-dd", 
+        30, 
+        "Days"
+    )
+    
+    // 1-year subscription
+    SubscriptionManager.subscriptionEndDate = addToDate(
+        SubscriptionManager.startDate,
+        "yyyy-MM-dd",
+        1,
+        "Years"
+    )
+    
+    // Auto-renewal 7 days before expiration
+    SubscriptionManager.renewalDate = addToDate(
+        SubscriptionManager.subscriptionEndDate,
+        "yyyy-MM-dd", 
+        -7,
+        "Days"
+    )
+    
+    // 15-day grace period after expiration
+    SubscriptionManager.gracePeriodEnd = addToDate(
+        SubscriptionManager.subscriptionEndDate,
+        "yyyy-MM-dd",
+        15,
+        "Days"
+    )
+}
+```
+
+</TabItem>
+</Tabs>
+
+## dayDifference()
+
+Calculates the number of days between two dates.
+
+**Syntax:**
+```flow
+result = dayDifference(fromDate, toDate, format)
+```
+
+**Parameters:**
+- `fromDate`: Starting date
+- `toDate`: Ending date  
+- `format`: Date format (both dates must use same format)
+
+**Returns:** Number of days between dates (positive if toDate is later)
+
+**Examples:**
+
+<Tabs>
+<TabItem value="basic" label="Basic Calculations">
+
+```flow
+Schema DateDifference {
+    string startDate
+    string endDate
+    number daysBetween
+    number daysUntilExpiry
+    number daysSinceCreated
+}
+
+Mapping calculateDifferences input DateDifference output DateDifference {
+    DateDifference.daysBetween = dayDifference(
+        DateDifference.startDate, 
+        DateDifference.endDate, 
+        "yyyy-MM-dd"
+    )
+    
+    DateDifference.daysUntilExpiry = dayDifference(
+        currentDate("yyyy-MM-dd"),
+        DateDifference.endDate,
+        "yyyy-MM-dd" 
+    )
+    
+    DateDifference.daysSinceCreated = dayDifference(
+        DateDifference.startDate,
+        currentDate("yyyy-MM-dd"),
+        "yyyy-MM-dd"
+    )
+}
+
+// Input: { startDate: "2023-12-01", endDate: "2023-12-25" }
+// Output: 
+// {
+//   "daysBetween": 24,
+//   "daysUntilExpiry": 5, // (assuming current date is 2023-12-20)
+//   "daysSinceCreated": 19
+// }
+```
+
+</TabItem>
+<TabItem value="analytics" label="Analytics Usage">
+
+```flow
+Schema UserAnalytics {
+    string registrationDate
+    string lastLoginDate
+    number accountAge
+    number daysSinceLastLogin
+    boolean isActiveUser
+    string accountStatus
+}
+
+Mapping analyzeUserActivity input UserAnalytics output UserAnalytics {
+    today = currentDate("yyyy-MM-dd")
+    
+    UserAnalytics.accountAge = dayDifference(
+        UserAnalytics.registrationDate,
+        today,
+        "yyyy-MM-dd"
+    )
+    
+    UserAnalytics.daysSinceLastLogin = dayDifference(
+        UserAnalytics.lastLoginDate,
+        today,
+        "yyyy-MM-dd"
+    )
+    
+    // User is active if logged in within last 30 days
+    UserAnalytics.isActiveUser = UserAnalytics.daysSinceLastLogin <= 30
+    
+    // Determine account status based on activity
+    UserAnalytics.accountStatus = if UserAnalytics.daysSinceLastLogin <= 7
+        then "active"
+        else if UserAnalytics.daysSinceLastLogin <= 30
+        then "moderate"
+        else if UserAnalytics.daysSinceLastLogin <= 90
+        then "inactive"
+        else "dormant"
+}
+```
+
+</TabItem>
+</Tabs>
+
+## dayOfWeek()
+
+Gets the day of the week for a given date.
+
+**Syntax:**
+```flow
+result = dayOfWeek(date, format)
+```
+
+**Parameters:**
+- `date`: Date value
+- `format`: Date format
+
+**Returns:** Day of week as string (e.g., "Monday", "Tuesday", etc.)
+
+**Examples:**
+
+<Tabs>
+<TabItem value="simple" label="Simple Usage">
+
+```flow
+Schema WeekdayInfo {
+    string eventDate
+    string dayName
+    boolean isWeekend
+    boolean isBusinessDay
+}
+
+Mapping getWeekdayInfo input WeekdayInfo output WeekdayInfo {
+    WeekdayInfo.dayName = dayOfWeek(WeekdayInfo.eventDate, "yyyy-MM-dd")
+    WeekdayInfo.isWeekend = WeekdayInfo.dayName == "Saturday" || WeekdayInfo.dayName == "Sunday"
+    WeekdayInfo.isBusinessDay = !WeekdayInfo.isWeekend
+}
+
+// Input: { eventDate: "2023-12-25" }
+// Output:
+// {
+//   "dayName": "Monday",
+//   "isWeekend": false,
+//   "isBusinessDay": true
+// }
+```
+
+</TabItem>
+<TabItem value="scheduling" label="Scheduling Logic">
+
+```flow
+Schema EventScheduler {
+    string proposedDate
+    string dayOfWeek
+    string adjustedDate
+    string eventType
+}
+
+Mapping scheduleEvent input EventScheduler output EventScheduler {
+    EventScheduler.dayOfWeek = dayOfWeek(EventScheduler.proposedDate, "yyyy-MM-dd")
+    
+    // Business meetings only on weekdays
+    EventScheduler.adjustedDate = if EventScheduler.eventType == "business"
+        then if EventScheduler.dayOfWeek == "Saturday"
+            then addToDate(EventScheduler.proposedDate, "yyyy-MM-dd", 2, "Days")  // Move to Monday
+            else if EventScheduler.dayOfWeek == "Sunday"  
+            then addToDate(EventScheduler.proposedDate, "yyyy-MM-dd", 1, "Days")  // Move to Monday
+            else EventScheduler.proposedDate
+        else EventScheduler.proposedDate
+}
+```
+
+</TabItem>
+</Tabs>
+
+## Advanced Date Functions
+
+### monthName()
+Gets the month name for a date.
+
+**Syntax:**
+```flow
+result = monthName(date, format)
+```
+
+**Example:**
+```flow
+Schema MonthInfo {
+    string date
+    string monthName
+    string displayText
+}
+
+Mapping getMonthInfo input MonthInfo output MonthInfo {
+    MonthInfo.monthName = monthName(MonthInfo.date, "yyyy-MM-dd")
+    MonthInfo.displayText = monthName(MonthInfo.date, "yyyy-MM-dd") + " " + 
+                           extract(MonthInfo.date, "0..4")  // Extract year
+}
+
+// Input: { date: "2023-12-25" }
+// Output: { monthName: "December", displayText: "December 2023" }
+```
+
+### weekNumber()
+Gets the week number of the year.
+
+**Syntax:**
+```flow
+result = weekNumber(date, format)
+```
+
+**Example:**
+```flow
+Schema WeekInfo {
+    string date
+    number weekNumber
+    string weekDescription
+}
+
+Mapping getWeekInfo input WeekInfo output WeekInfo {
+    WeekInfo.weekNumber = weekNumber(WeekInfo.date, "yyyy-MM-dd")
+    WeekInfo.weekDescription = "Week " + WeekInfo.weekNumber + " of " + extract(WeekInfo.date, "0..4")
+}
+
+// Input: { date: "2023-12-25" }
+// Output: { weekNumber: 52, weekDescription: "Week 52 of 2023" }
+```
+
+## Real-World Examples
+
+### Event Management System
+
+```flow
+Schema EventManager {
+    string eventDate
+    string registrationDeadline
+    string earlyBirdDeadline
+    number daysUntilEvent
+    number daysUntilRegistration
+    boolean canRegister
+    boolean earlyBirdEligible
+    string eventStatus
+    string displayDate
+}
+
+Mapping manageEvent input EventManager output EventManager {
+    today = currentDate("yyyy-MM-dd")
+    
+    // Calculate days until various deadlines
+    EventManager.daysUntilEvent = dayDifference(today, EventManager.eventDate, "yyyy-MM-dd")
+    EventManager.daysUntilRegistration = dayDifference(today, EventManager.registrationDeadline, "yyyy-MM-dd")
+    
+    // Determine eligibility
+    EventManager.canRegister = EventManager.daysUntilRegistration > 0
+    EventManager.earlyBirdEligible = dayDifference(today, EventManager.earlyBirdDeadline, "yyyy-MM-dd") > 0
+    
+    // Set event status
+    EventManager.eventStatus = if EventManager.daysUntilEvent < 0
+        then "completed"
+        else if EventManager.daysUntilEvent == 0
+        then "today"  
+        else if EventManager.daysUntilEvent <= 7
+        then "upcoming"
+        else "future"
+    
+    // Create display-friendly date
+    EventManager.displayDate = monthName(EventManager.eventDate, "yyyy-MM-dd") + " " +
+                              extract(EventManager.eventDate, "8..10") + ", " +
+                              extract(EventManager.eventDate, "0..4") + " (" +
+                              dayOfWeek(EventManager.eventDate, "yyyy-MM-dd") + ")"
+}
+
+// Result: "December 25, 2023 (Monday)"
+```
+
+### Subscription & Billing System
+
+```flow
+Schema SubscriptionBilling {
+    string subscriptionStart
+    string currentPeriodEnd
+    string nextBillingDate
+    number daysSinceStart
+    number daysInCurrentPeriod
+    number daysUntilRenewal
+    boolean isInGracePeriod
+    string billingStatus
+    number prorationDays
+}
+
+Mapping calculateBilling input SubscriptionBilling output SubscriptionBilling {
+    today = currentDate("yyyy-MM-dd")
+    
+    // Calculate key metrics
+    SubscriptionBilling.daysSinceStart = dayDifference(
+        SubscriptionBilling.subscriptionStart, 
+        today, 
+        "yyyy-MM-dd"
+    )
+    
+    SubscriptionBilling.daysUntilRenewal = dayDifference(
+        today,
+        SubscriptionBilling.nextBillingDate,
+        "yyyy-MM-dd" 
+    )
+    
+    // Calculate current billing period length
+    lastBillingDate = addToDate(SubscriptionBilling.nextBillingDate, "yyyy-MM-dd", -30, "Days")
+    SubscriptionBilling.daysInCurrentPeriod = dayDifference(
+        lastBillingDate,
+        SubscriptionBilling.nextBillingDate,
+        "yyyy-MM-dd"
+    )
+    
+    // Determine if in grace period (5 days past due)
+    SubscriptionBilling.isInGracePeriod = SubscriptionBilling.daysUntilRenewal < 0 && 
+                                         SubscriptionBilling.daysUntilRenewal >= -5
+    
+    // Set billing status
+    SubscriptionBilling.billingStatus = if SubscriptionBilling.daysUntilRenewal > 7
+        then "active"
+        else if SubscriptionBilling.daysUntilRenewal > 0
+        then "due_soon"
+        else if SubscriptionBilling.isInGracePeriod
+        then "grace_period"
+        else "overdue"
+    
+    // Calculate proration for upgrades/downgrades
+    SubscriptionBilling.prorationDays = if SubscriptionBilling.daysUntilRenewal > 0
+        then SubscriptionBilling.daysUntilRenewal
+        else 0
+}
+```
+
+## Best Practices
+
+### 1. Use Consistent Date Formats
+```flow
+//  Good: Consistent ISO format throughout
+startDate = currentDate("yyyy-MM-dd")
+endDate = addToDate(startDate, "yyyy-MM-dd", 30, "Days")
+daysBetween = dayDifference(startDate, endDate, "yyyy-MM-dd")
+
+//  Avoid: Mixed formats
+startDate = currentDate("MM/dd/yyyy")
+endDate = addToDate(startDate, "yyyy-MM-dd", 30, "Days")  // Format mismatch!
+```
+
+### 2. Handle Timezone Consistently
+```flow
+//  Good: Explicit timezone handling
+utcTime = currentDate("yyyy-MM-dd'T'HH:mm:ss'Z'")
+localTime = dateFormat(
+    "yyyy-MM-dd'T'HH:mm:ss'Z'", 
+    "yyyy-MM-dd'T'HH:mm:ssZ",
+    utcTime,
+    "UTC",
+    "America/New_York"
+)
+```
+
+### 3. Validate Date Operations
+```flow
+//  Good: Safe date calculations
+futureDate = if baseDate != null 
+             then addToDate(baseDate, "yyyy-MM-dd", 30, "Days")
+             else currentDate("yyyy-MM-dd")
+
+daysDiff = if startDate != null && endDate != null
+           then dayDifference(startDate, endDate, "yyyy-MM-dd")
+           else 0
+```
+
+### 4. Use Meaningful Variable Names
+```flow
+//  Good: Descriptive names
+subscriptionEndDate = addToDate(subscriptionStartDate, "yyyy-MM-dd", 365, "Days")
+daysUntilExpiry = dayDifference(currentDate("yyyy-MM-dd"), subscriptionEndDate, "yyyy-MM-dd")
+
+//  Avoid: Generic names
+date1 = addToDate(date2, "yyyy-MM-dd", 365, "Days")
+diff = dayDifference(currentDate("yyyy-MM-dd"), date1, "yyyy-MM-dd")
+```
+
+## Related Topics
+
+- **[String Functions](string-functions)** - Text processing and manipulation
+- **[Collection Functions](collection-functions)** - Array and list operations  
+- **[Mapping Node](/language/nodes/mapping)** - Using date functions in data transformations
+- **[Value Node](/language/nodes/value)** - Creating date-based dynamic values
+

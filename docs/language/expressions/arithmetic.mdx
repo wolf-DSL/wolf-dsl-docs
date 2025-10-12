@@ -1,0 +1,590 @@
+---
+title: Arithmetic Expressions
+description: Mathematical operations and calculations in Wolf DSL expressions
+sidebar_position: 2
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Arithmetic Expressions
+
+Arithmetic expressions in Wolf DSL enable mathematical calculations, numeric transformations, and quantitative analysis. They support all standard mathematical operations with automatic type conversion and null safety.
+
+## Supported Operations
+
+| Operator | Operation | Example | Result |
+|----------|-----------|---------|---------|
+| `+` | Addition | `5 + 3` | `8` |
+| `-` | Subtraction | `10 - 4` | `6` |
+| `*` | Multiplication | `7 * 6` | `42` |
+| `/` | Division | `15 / 3` | `5` |
+| `%` | Modulus (Remainder) | `17 % 5` | `2` |
+| `^` | Exponentiation (Power) | `2 ^ 3` | `8` |
+
+## Basic Arithmetic Operations
+
+<Tabs>
+<TabItem value="simple" label="Simple Operations">
+
+```flow
+Schema MathOperations {
+    number value1
+    number value2
+    number addition
+    number subtraction
+    number multiplication
+    number division
+    number modulus
+    number power
+}
+
+Mapping performCalculations input MathOperations output MathOperations {
+    MathOperations.addition = MathOperations.value1 + MathOperations.value2
+    MathOperations.subtraction = MathOperations.value2 - MathOperations.value1  
+    MathOperations.multiplication = MathOperations.value1 * MathOperations.value2
+    MathOperations.division = MathOperations.value1 / MathOperations.value2
+    MathOperations.modulus = MathOperations.value1 % MathOperations.value2
+    MathOperations.power = MathOperations.value2 ^ MathOperations.value1
+}
+
+// Input: { value1: 8, value2: 3 }
+// Output:
+// {
+//   "addition": 11,
+//   "subtraction": -5, 
+//   "multiplication": 24,
+//   "division": 2.67,
+//   "modulus": 2,
+//   "power": 9
+// }
+```
+
+</TabItem>
+<TabItem value="complex" label="Complex Expressions">
+
+```flow
+Schema ComplexCalculations {
+    number principal
+    number rate  
+    number time
+    number compoundInterest
+    number monthlyPayment
+    number totalAmount
+}
+
+Mapping calculateFinancials input ComplexCalculations output ComplexCalculations {
+    // Compound interest: A = P(1 + r)^t
+    ComplexCalculations.compoundInterest = ComplexCalculations.principal * 
+        ((1 + ComplexCalculations.rate) ^ ComplexCalculations.time) - 
+        ComplexCalculations.principal
+    
+    // Monthly payment calculation
+    monthlyRate = ComplexCalculations.rate / 12
+    numPayments = ComplexCalculations.time * 12
+    
+    ComplexCalculations.monthlyPayment = ComplexCalculations.principal * 
+        (monthlyRate * ((1 + monthlyRate) ^ numPayments)) / 
+        (((1 + monthlyRate) ^ numPayments) - 1)
+    
+    ComplexCalculations.totalAmount = ComplexCalculations.principal + ComplexCalculations.compoundInterest
+}
+```
+
+</TabItem>
+</Tabs>
+
+## Order of Operations (Precedence)
+
+Wolf DSL follows standard mathematical precedence rules:
+
+1. **Parentheses** `()` - Highest priority
+2. **Exponentiation** `^` 
+3. **Multiplication and Division** `*`, `/` (left to right)
+4. **Addition and Subtraction** `+`, `-` (left to right)
+
+### Precedence Examples
+
+<Tabs>
+<TabItem value="precedence" label="Precedence Rules">
+
+```flow
+Schema PrecedenceExamples {
+    number result1
+    number result2
+    number result3
+    number result4
+    number result5
+}
+
+Mapping demonstratePrecedence output PrecedenceExamples {
+    // Standard precedence
+    PrecedenceExamples.result1 = 2 + 3 * 4        // = 14 (not 20)
+    PrecedenceExamples.result2 = 10 - 6 / 2       // = 7 (not 2)
+    PrecedenceExamples.result3 = 2 ^ 3 * 4        // = 32 (8 * 4)
+    
+    // Using parentheses to override precedence
+    PrecedenceExamples.result4 = (2 + 3) * 4      // = 20
+    PrecedenceExamples.result5 = 10 - (6 / 2)     // = 7 (same as above)
+}
+
+// Output:
+// {
+//   "result1": 14,
+//   "result2": 7, 
+//   "result3": 32,
+//   "result4": 20,
+//   "result5": 7
+// }
+```
+
+</TabItem>
+<TabItem value="complex" label="Complex Precedence">
+
+```flow
+Schema ComplexPrecedence {
+    number a
+    number b
+    number c
+    number d
+    number complexResult1
+    number complexResult2
+    number complexResult3
+}
+
+Mapping calculateComplex input ComplexPrecedence output ComplexPrecedence {
+    // Complex expression with multiple operators
+    ComplexPrecedence.complexResult1 = ComplexPrecedence.a + ComplexPrecedence.b * ComplexPrecedence.c ^ 2
+    
+    // Same expression with explicit parentheses for clarity
+    ComplexPrecedence.complexResult2 = ComplexPrecedence.a + (ComplexPrecedence.b * (ComplexPrecedence.c ^ 2))
+    
+    // Different grouping changes the result
+    ComplexPrecedence.complexResult3 = (ComplexPrecedence.a + ComplexPrecedence.b) * (ComplexPrecedence.c ^ 2)
+}
+
+// Input: { a: 2, b: 3, c: 4, d: 5 }
+// complexResult1 and complexResult2: 2 + (3 * (4^2)) = 2 + (3 * 16) = 2 + 48 = 50  
+// complexResult3: (2 + 3) * (4^2) = 5 * 16 = 80
+```
+
+</TabItem>
+</Tabs>
+
+## Working with Different Number Types
+
+### Integer vs Decimal Operations
+
+<Tabs>
+<TabItem value="types" label="Number Types">
+
+```flow
+Schema NumericTypes {
+    number wholeNumber1
+    number wholeNumber2  
+    number decimal1
+    number decimal2
+    number integerDivision
+    number decimalDivision
+    number mixedOperation
+}
+
+Mapping handleNumericTypes input NumericTypes output NumericTypes {
+    // Integer operations
+    NumericTypes.integerDivision = 10 / 3          // = 3.33 (automatic decimal)
+    
+    // Decimal operations
+    NumericTypes.decimalDivision = 10.5 / 2.5      // = 4.2
+    
+    // Mixed operations
+    NumericTypes.mixedOperation = 10.5 + 5         // = 15.5 (int promoted to decimal)
+}
+```
+
+</TabItem>
+<TabItem value="precision" label="Precision Handling">
+
+```flow
+Schema PrecisionExample {
+    number value1
+    number value2
+    number preciseResult
+    number roundedResult  
+    string formattedResult
+}
+
+Mapping handlePrecision input PrecisionExample output PrecisionExample {
+    // High precision calculation
+    PrecisionExample.preciseResult = (PrecisionExample.value1 * 1000) / 1000
+    
+    // Using currencyFormat for controlled precision
+    rawResult = PrecisionExample.value1 / PrecisionExample.value2
+    PrecisionExample.formattedResult = currencyFormat(rawResult)  // Rounds to 2 decimals
+}
+```
+
+</TabItem>
+</Tabs>
+
+## String to Number Conversion
+
+Wolf DSL automatically converts strings to numbers in arithmetic contexts:
+
+```flow
+Schema StringConversion {
+    string numberString1
+    string numberString2
+    number result1
+    number result2
+    number result3
+}
+
+Mapping convertStrings input StringConversion output StringConversion {
+    // Automatic string-to-number conversion
+    StringConversion.result1 = StringConversion.numberString1 + 10      // "25" + 10 = 35
+    StringConversion.result2 = StringConversion.numberString1 * 2       // "25" * 2 = 50
+    StringConversion.result3 = StringConversion.numberString1 + StringConversion.numberString2  // "25" + "15" = 40
+}
+
+// Input: { numberString1: "25", numberString2: "15" }
+// Output: { result1: 35, result2: 50, result3: 40 }
+```
+
+## Real-World Examples
+
+### E-commerce Price Calculations
+
+<Tabs>
+<TabItem value="ecommerce" label="Order Processing">
+
+```flow
+Schema OrderCalculation {
+    number itemPrice
+    number quantity
+    number taxRate
+    number discountPercent
+    number shippingCost
+    number subtotal
+    number discountAmount
+    number taxableAmount
+    number taxAmount
+    number totalAmount
+    string formattedTotal
+}
+
+Mapping calculateOrderTotal input OrderCalculation output OrderCalculation {
+    // Calculate subtotal
+    OrderCalculation.subtotal = OrderCalculation.itemPrice * OrderCalculation.quantity
+    
+    // Calculate discount
+    OrderCalculation.discountAmount = OrderCalculation.subtotal * 
+        (OrderCalculation.discountPercent / 100)
+    
+    // Calculate taxable amount (after discount)
+    OrderCalculation.taxableAmount = OrderCalculation.subtotal - OrderCalculation.discountAmount
+    
+    // Calculate tax
+    OrderCalculation.taxAmount = OrderCalculation.taxableAmount * (OrderCalculation.taxRate / 100)
+    
+    // Calculate final total
+    OrderCalculation.totalAmount = OrderCalculation.taxableAmount + 
+        OrderCalculation.taxAmount + 
+        OrderCalculation.shippingCost
+    
+    // Format for display
+    OrderCalculation.formattedTotal = currencyFormat(OrderCalculation.totalAmount)
+}
+
+// Input: { itemPrice: 50, quantity: 3, taxRate: 8.5, discountPercent: 10, shippingCost: 5.99 }
+// Calculation: 
+// subtotal: 50 * 3 = 150
+// discount: 150 * 0.1 = 15
+// taxableAmount: 150 - 15 = 135  
+// tax: 135 * 0.085 = 11.48
+// total: 135 + 11.48 + 5.99 = 152.47
+```
+
+</TabItem>
+<TabItem value="pricing" label="Dynamic Pricing">
+
+```flow
+Schema DynamicPricing {
+    number basePrice
+    string customerTier
+    number orderQuantity
+    boolean isHolidaySale
+    number volumeDiscountRate
+    number tierDiscountRate
+    number holidayDiscountRate
+    number finalPrice
+}
+
+Mapping calculateDynamicPrice input DynamicPricing output DynamicPricing {
+    // Volume discount based on quantity  
+    DynamicPricing.volumeDiscountRate = if DynamicPricing.orderQuantity >= 100
+        then 0.15
+        else if DynamicPricing.orderQuantity >= 50  
+        then 0.10
+        else if DynamicPricing.orderQuantity >= 20
+        then 0.05
+        else 0.0
+    
+    // Tier-based discount
+    DynamicPricing.tierDiscountRate = if DynamicPricing.customerTier == "platinum"
+        then 0.20
+        else if DynamicPricing.customerTier == "gold"
+        then 0.15
+        else if DynamicPricing.customerTier == "silver"
+        then 0.10
+        else 0.0
+    
+    // Holiday discount
+    DynamicPricing.holidayDiscountRate = if DynamicPricing.isHolidaySale then 0.25 else 0.0
+    
+    // Calculate final price with compound discounts
+    priceAfterVolume = DynamicPricing.basePrice * (1 - DynamicPricing.volumeDiscountRate)
+    priceAfterTier = priceAfterVolume * (1 - DynamicPricing.tierDiscountRate)
+    DynamicPricing.finalPrice = priceAfterTier * (1 - DynamicPricing.holidayDiscountRate)
+}
+```
+
+</TabItem>
+</Tabs>
+
+### Financial Calculations
+
+<Tabs>
+<TabItem value="loan" label="Loan Calculator">
+
+```flow
+Schema LoanCalculator {
+    number principal
+    number annualRate
+    number years
+    number monthlyRate
+    number numPayments
+    number monthlyPayment
+    number totalInterest
+    number totalPayment
+}
+
+Mapping calculateLoan input LoanCalculator output LoanCalculator {
+    // Convert annual rate to monthly and years to payments
+    LoanCalculator.monthlyRate = LoanCalculator.annualRate / 12 / 100
+    LoanCalculator.numPayments = LoanCalculator.years * 12
+    
+    // Calculate monthly payment using loan formula
+    // M = P * (r(1+r)^n) / ((1+r)^n - 1)
+    rateCompound = (1 + LoanCalculator.monthlyRate) ^ LoanCalculator.numPayments
+    LoanCalculator.monthlyPayment = LoanCalculator.principal * 
+        (LoanCalculator.monthlyRate * rateCompound) / 
+        (rateCompound - 1)
+    
+    // Calculate totals
+    LoanCalculator.totalPayment = LoanCalculator.monthlyPayment * LoanCalculator.numPayments
+    LoanCalculator.totalInterest = LoanCalculator.totalPayment - LoanCalculator.principal
+}
+
+// Input: { principal: 200000, annualRate: 4.5, years: 30 }
+// Monthly Payment: ~$1,013.37
+// Total Interest: ~$164,813.42
+```
+
+</TabItem>
+<TabItem value="investment" label="Investment Growth">
+
+```flow
+Schema InvestmentCalculator {
+    number initialAmount
+    number monthlyContribution
+    number annualReturn
+    number years
+    number totalContributions
+    number investmentValue
+    number totalGain
+    number annualizedReturn
+}
+
+Mapping calculateInvestment input InvestmentCalculator output InvestmentCalculator {
+    // Monthly calculations
+    monthlyReturn = InvestmentCalculator.annualReturn / 12 / 100
+    months = InvestmentCalculator.years * 12
+    
+    // Total contributions
+    InvestmentCalculator.totalContributions = InvestmentCalculator.initialAmount + 
+        (InvestmentCalculator.monthlyContribution * months)
+    
+    // Future value with compound growth and regular contributions
+    // FV = PV(1+r)^n + PMT * (((1+r)^n - 1) / r)
+    initialGrowth = InvestmentCalculator.initialAmount * ((1 + monthlyReturn) ^ months)
+    
+    contributionGrowth = if monthlyReturn > 0
+        then InvestmentCalculator.monthlyContribution * 
+             (((1 + monthlyReturn) ^ months) - 1) / monthlyReturn
+        else InvestmentCalculator.monthlyContribution * months
+    
+    InvestmentCalculator.investmentValue = initialGrowth + contributionGrowth
+    InvestmentCalculator.totalGain = InvestmentCalculator.investmentValue - 
+                                    InvestmentCalculator.totalContributions
+    
+    // Annualized return calculation
+    InvestmentCalculator.annualizedReturn = 
+        ((InvestmentCalculator.investmentValue / InvestmentCalculator.totalContributions) ^ 
+         (1 / InvestmentCalculator.years)) - 1
+}
+```
+
+</TabItem>
+</Tabs>
+
+### Statistical Calculations
+
+```flow
+Schema StatisticsCalculator {
+    number[] values
+    number count
+    number sum
+    number average
+    number variance
+    number standardDeviation
+    number min
+    number max
+    number range
+}
+
+Mapping calculateStatistics input StatisticsCalculator output StatisticsCalculator {
+    // Basic statistics
+    StatisticsCalculator.count = length(StatisticsCalculator.values)
+    StatisticsCalculator.sum = sum(StatisticsCalculator.values, value -> value)
+    StatisticsCalculator.average = StatisticsCalculator.sum / StatisticsCalculator.count
+    
+    // Min and Max (using sorting)
+    sortedValues = sort(StatisticsCalculator.values, value)
+    StatisticsCalculator.min = sortedValues[0]
+    StatisticsCalculator.max = sortedValues[-1]  
+    StatisticsCalculator.range = StatisticsCalculator.max - StatisticsCalculator.min
+    
+    // Variance calculation: Σ(x - μ)² / n
+    squaredDifferences = map(
+        StatisticsCalculator.values,
+        value -> (value - StatisticsCalculator.average) ^ 2
+    )
+    StatisticsCalculator.variance = sum(squaredDifferences, diff -> diff) / StatisticsCalculator.count
+    
+    // Standard deviation: variance  
+    StatisticsCalculator.standardDeviation = StatisticsCalculator.variance ^ 0.5
+}
+```
+
+## Error Handling and Edge Cases
+
+### Division by Zero and Invalid Operations
+
+```flow
+Schema SafeArithmetic {
+    number dividend
+    number divisor
+    number safeQuotient
+    number safePower
+    number safeModulus
+}
+
+Mapping performSafeOperations input SafeArithmetic output SafeArithmetic {
+    // Safe division
+    SafeArithmetic.safeQuotient = if SafeArithmetic.divisor != 0
+        then SafeArithmetic.dividend / SafeArithmetic.divisor
+        else 0  // or some default value
+    
+    // Safe power operations
+    SafeArithmetic.safePower = if SafeArithmetic.dividend >= 0 
+        then SafeArithmetic.dividend ^ 0.5  // Square root
+        else 0  // Handle negative numbers
+    
+    // Safe modulus
+    SafeArithmetic.safeModulus = if SafeArithmetic.divisor != 0
+        then SafeArithmetic.dividend % SafeArithmetic.divisor
+        else SafeArithmetic.dividend
+}
+```
+
+### Null Value Handling
+
+```flow
+Schema NullSafeArithmetic {
+    number value1
+    number value2
+    number safeSum
+    number safeProduct
+    number fallbackResult
+}
+
+Mapping handleNulls input NullSafeArithmetic output NullSafeArithmetic {
+    // Null-safe operations (nulls are treated as 0)
+    NullSafeArithmetic.safeSum = NullSafeArithmetic.value1 + NullSafeArithmetic.value2
+    NullSafeArithmetic.safeProduct = NullSafeArithmetic.value1 * NullSafeArithmetic.value2
+    
+    // Explicit null handling
+    NullSafeArithmetic.fallbackResult = if NullSafeArithmetic.value1 != null && NullSafeArithmetic.value2 != null
+        then NullSafeArithmetic.value1 + NullSafeArithmetic.value2
+        else 0
+}
+```
+
+## Best Practices
+
+### 1. Use Parentheses for Complex Expressions
+```flow
+//  Good: Clear and readable
+total = (basePrice * quantity) + (taxRate * basePrice * quantity) + shippingCost
+
+//  Confusing: Hard to understand precedence
+total = basePrice * quantity + taxRate * basePrice * quantity + shippingCost
+```
+
+### 2. Break Complex Calculations into Steps
+```flow
+//  Good: Step-by-step calculation
+subtotal = itemPrice * quantity
+discountAmount = subtotal * discountRate  
+taxAmount = (subtotal - discountAmount) * taxRate
+finalTotal = subtotal - discountAmount + taxAmount
+
+//  Hard to debug: Everything in one line
+finalTotal = (itemPrice * quantity) - ((itemPrice * quantity) * discountRate) + 
+             (((itemPrice * quantity) - ((itemPrice * quantity) * discountRate)) * taxRate)
+```
+
+### 3. Handle Edge Cases
+```flow
+//  Good: Safe division
+average = if count > 0 then total / count else 0
+percentage = if total > 0 then (completed / total) * 100 else 0
+
+//  Dangerous: No error handling
+average = total / count  // Could divide by zero
+```
+
+### 4. Use Meaningful Intermediate Variables
+```flow
+//  Good: Descriptive variable names
+monthlyInterestRate = annualRate / 12 / 100
+numberOfPayments = loanTermYears * 12
+compoundFactor = (1 + monthlyInterestRate) ^ numberOfPayments
+
+//  Unclear: Generic variable names
+r = rate / 12 / 100
+n = years * 12  
+cf = (1 + r) ^ n
+```
+
+## Related Topics
+
+- **[Expressions Overview](/language/expressions)** - Complete expression system guide
+- **[Functions Reference](/language/functions)** - Available functions for expressions
+- **[Collection Functions](/language/functions/collection-functions)** - Math operations on arrays
+- **[Utility Functions](/language/functions/utility-functions)** - Currency formatting and more
+- **[Mapping Node](/language/nodes/mapping)** - Using arithmetic in data transformations
+
+---
+
+*Arithmetic expressions in Wolf DSL provide powerful mathematical capabilities for financial calculations, statistical analysis, and numeric data processing, all while maintaining Wolf DSL's declarative clarity and safety.*

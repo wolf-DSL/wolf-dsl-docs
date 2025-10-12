@@ -1,0 +1,263 @@
+---
+title: Examples & Recipes
+description: Practical Wolf DSL examples and common patterns for real-world use cases
+sidebar_position: 1
+---
+
+import DocCardList from '@theme/DocCardList';
+
+# Examples & Recipes
+
+This section provides practical examples and proven patterns for common Wolf DSL use cases. Each example is self-contained and can be adapted to your specific needs.
+
+##  Quick Examples
+
+### Hello World Flow
+```flow
+Schema Greeting {
+    string message
+    string timestamp
+}
+
+value helloWorld -> Greeting {
+    message: "Hello, Wolf DSL!"
+    timestamp: ${currentDate("yyyy-MM-dd HH:mm:ss")}
+}
+
+Mapping formatGreeting input helloWorld output Greeting {
+    Greeting.message = " " + helloWorld.message
+    Greeting.timestamp = helloWorld.timestamp
+}
+
+Flow simpleFlow {
+    Start helloWorld {
+        transition { formatGreeting }
+    }
+    formatGreeting {}
+}
+```
+
+### Simple REST API Call
+```flow
+Schema ApiResponse {
+    string status
+    User data
+}
+
+Schema User {
+    string id
+    string name
+    string email
+}
+
+Service userService method GET as getUser
+input UserId output ApiResponse {
+    Url -> @Config("api.base.url")
+    Path -> ${"/users/" + UserId.id}
+    @Header Accept -> ${"application/json"}
+    @Header Authorization -> ${"Bearer " + @Config("api.token")}
+}
+```
+
+##  Comprehensive Examples
+
+<DocCardList />
+
+##  Use Case Categories
+
+### Data Processing
+- **[Mapping Node](/language/nodes/mapping)** - Complex data transformation operations
+- **[Collection Functions](/language/functions/collection-functions)** - Working with arrays and lists
+- **[Expressions](/language/expressions)** - Decision trees and branching logic
+
+### Service Integration  
+- **[Service Node](/language/nodes/service)** - HTTP API integration patterns
+- **[Functions Reference](/language/functions)** - Built-in functions for data processing
+
+### Advanced Patterns
+- **[Best Practices](/advanced/best-practices)** - Proven patterns and optimization techniques
+
+##  Pattern Library
+
+### Common Patterns
+
+#### 1. Service with Fallback
+```flow
+Flow resilientFlow {
+    Start request {
+        transition {
+            @Config("primary.service.enabled") == "true" 
+                ? primaryService 
+                : fallbackMapping
+        }
+    }
+    primaryService {
+        transition { responseTransform }
+    }
+    fallbackMapping {
+        transition { responseTransform }
+    }
+    responseTransform {}
+}
+```
+
+#### 2. Conditional Data Processing
+```flow
+Mapping processUser input RawUser output ProcessedUser {
+    ProcessedUser.id = RawUser.id
+    ProcessedUser.name = upperCase(RawUser.name)
+    ProcessedUser.email = lowerCase(RawUser.email)
+    ProcessedUser.status = if RawUser.age >= 18 then "adult" else "minor"
+    ProcessedUser.permissions = if RawUser.role == "admin" 
+                                then ["read", "write", "delete"] 
+                                else ["read"]
+}
+```
+
+#### 3. Array Processing
+```flow
+Mapping filterAndTransform input UserList output FilteredUsers {
+    // Filter active users and transform
+    FilteredUsers.users = map(
+        filter(UserList.users, user -> user.isActive == true),
+        user -> {
+            name = upperCase(user.firstName + " " + user.lastName)
+            email = lowerCase(user.email)
+            joinDate = dateFormat("ms", "yyyy-MM-dd", user.createdAt)
+        }
+    )
+    FilteredUsers.count = length(FilteredUsers.users)
+}
+```
+
+##  Testing Your Examples
+
+All examples in this section can be tested using the Wolf DSL validation tools:
+
+### Maven Validation
+```bash
+mvn com.intuit.dsl.flow:wolf-maven-plugin:compile
+```
+
+### Gradle Validation  
+```bash
+./gradlew wollfValidate
+```
+
+### IDE Validation
+Open any `.flow` file in your IDE with the Wolf DSL plugin installed to see real-time syntax validation and error highlighting.
+
+##  Example Template
+
+When creating your own flows, use this template as a starting point:
+
+```flow
+// TODO: Replace with your schema definitions
+Schema InputData {
+    string field1
+    // Add your fields here
+}
+
+Schema OutputData {
+    string result
+    // Add your fields here
+}
+
+// TODO: Replace with your data
+value inputValue -> InputData {
+    field1: "example"
+    // Add your data here
+}
+
+// TODO: Replace with your transformation logic
+Mapping transform input inputValue output OutputData {
+    OutputData.result = "Processed: " + inputValue.field1
+    // Add your mapping logic here
+}
+
+// TODO: Replace with your flow logic
+Flow exampleFlow {
+    Start inputValue {
+        transition { transform }
+    }
+    transform {}
+}
+```
+
+##  Best Practices
+
+### 1. **Clear Naming Conventions**
+```flow
+//  Good: Descriptive names
+Schema UserProfile { ... }
+Service userProfileService method GET as getUserProfile
+Mapping enrichUserProfileData
+
+//  Avoid: Generic names
+Schema Data { ... }
+Service svc1 method GET as getData
+Mapping map1
+```
+
+### 2. **Schema-First Design**
+```flow
+//  Good: Define schemas first
+Schema Order { ... }
+Schema Customer { ... }
+Schema OrderSummary { ... }
+
+// Then use them
+Mapping createOrderSummary input Order, Customer output OrderSummary
+```
+
+### 3. **Configuration Externalization**
+```flow
+//  Good: Use configuration
+Service apiService {
+    Url -> @Config("api.base.url")
+    @Header ApiKey -> @Config("api.key")
+}
+
+//  Avoid: Hardcoded values
+Service apiService {
+    Url -> "https://hardcoded-api.com"
+    @Header ApiKey -> "secret-key-123"
+}
+```
+
+### 4. **Error Handling**
+```flow
+//  Good: Plan for failures
+Flow robustFlow {
+    Start request {
+        transition {
+            @Config("fallback.enabled") == "true" 
+                ? primaryService 
+                : fallbackService
+        }
+    }
+    // Include timeout and retry configuration
+    primaryService {
+        Timeout -> ${10000}
+        Retry -> ${3}
+    }
+}
+```
+
+##  Learning Path
+
+1. **Start Here**: [Language Overview](/language/overview) - Understanding core concepts
+2. **Next**: [Service Node](/language/nodes/service) - Making API requests  
+3. **Then**: [Mapping Node](/language/nodes/mapping) - Processing and transforming data
+4. **Advanced**: [Best Practices](/advanced/best-practices) - Building resilient, maintainable flows
+5. **Expert**: [Functions Reference](/language/functions) - Master all available functions
+
+##  Need Help?
+
+- **Documentation Issues**: [Report on GitHub](https://github.com/wolf-DSL/wolf-dsl-docs/issues)
+- **Questions**: Use [GitHub Discussions](https://github.com/wolf-DSL/wolf-dsl-docs/discussions)  
+- **Language Issues**: [Language Repository](https://github.com/wolf-DSL/flow-language-spec/issues)
+
+---
+
+*These examples are tested against the Wolf DSL grammar and runtime. Copy any example and adapt it to your use case!*

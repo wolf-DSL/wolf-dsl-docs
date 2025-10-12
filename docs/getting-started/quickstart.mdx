@@ -1,0 +1,264 @@
+---
+title: Quickstart
+description: Build your first Wolf DSL flow in under 10 minutes
+sidebar_position: 1
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+import CodeBlock from '@theme/CodeBlock';
+
+# Quickstart Guide
+
+Get up and running with Wolf DSL in under 10 minutes. This guide will walk you through creating, validating, and running your first Wolf DSL flow.
+
+## Prerequisites
+
+Before you start, ensure you have:
+
+- Java 8+ installed
+- Maven 3.6+ or Gradle 6+ 
+- Your favorite IDE (VS Code, IntelliJ IDEA, or Eclipse)
+
+## 1. Project Setup
+
+Create a new directory for your Wolf DSL project:
+
+```bash
+mkdir my-wolf-project
+cd my-wolf-project
+```
+
+<Tabs>
+<TabItem value="maven" label="Maven">
+
+Create a `pom.xml` file:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    
+    <groupId>com.example</groupId>
+    <artifactId>my-wolf-project</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+    
+    <properties>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+        <wolf.version>1.0.0</wolf.version>
+    </properties>
+    
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.intuit.dsl.flow</groupId>
+                <artifactId>wolf-maven-plugin</artifactId>
+                <version>${wolf.version}</version>
+                <configuration>
+                    <flowDirectories>
+                        <param>src/main/resources/flows</param>
+                    </flowDirectories>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+```
+
+</TabItem>
+<TabItem value="gradle" label="Gradle">
+
+Create a `build.gradle` file:
+
+```gradle
+plugins {
+    id 'java'
+    id 'com.intuit.dsl.flow.wolf-plugin' version '1.0.0'
+}
+
+group = 'com.example'
+version = '1.0.0'
+
+sourceCompatibility = '8'
+
+wolf {
+    flowDirectories = ['src/main/resources/flows']
+}
+
+repositories {
+    mavenCentral()
+}
+```
+
+</TabItem>
+</Tabs>
+
+## 2. Create Your First Flow
+
+Create the flow directory:
+
+```bash
+mkdir -p src/main/resources/flows
+```
+
+Now create your first Wolf DSL flow at `src/main/resources/flows/hello-world.flow`:
+
+```flow
+// hello-world.flow - Your first Wolf DSL flow
+
+// Define the data structure
+Schema Greeting {
+    string message
+    string name
+    number timestamp
+}
+
+// Create static data
+value helloData -> Greeting {
+    message: "Hello"
+    name: "Wolf DSL"
+    timestamp: 1640995200000
+}
+
+// Transform the data  
+Mapping greetingTransform input helloData output Greeting {
+    Greeting.message = helloData.message + ", " + helloData.name + "!"
+    Greeting.name = "Transformed: " + helloData.name
+    Greeting.timestamp = ${currentDate("ms")}
+}
+
+// Define the main flow
+Flow helloFlow {
+    Start helloData {
+        transition {
+            greetingTransform
+        }
+    }
+    greetingTransform {}
+}
+```
+
+## 3. Validate Your Flow
+
+Run the validation to ensure your flow is syntactically correct:
+
+<Tabs>
+<TabItem value="maven" label="Maven">
+
+```bash
+mvn compile
+```
+
+</TabItem>
+<TabItem value="gradle" label="Gradle">
+
+```bash
+./gradlew build
+```
+
+</TabItem>
+</Tabs>
+
+If everything is correct, you should see a successful build. If there are syntax errors, the build will fail with helpful error messages.
+
+## 4. Understanding Your Flow
+
+Let's break down what your `hello-world.flow` does:
+
+### Schema Definition
+```flow
+Schema Greeting {
+    string message
+    string name  
+    number timestamp
+}
+```
+Defines the data structure with three fields.
+
+### Static Data
+```flow
+value helloData -> Greeting {
+    message: "Hello"
+    name: "Wolf DSL"
+    timestamp: 1640995200000
+}
+```
+Creates a static data instance following the `Greeting` schema.
+
+### Data Transformation
+```flow
+Mapping greetingTransform input helloData output Greeting {
+    Greeting.message = helloData.message + ", " + helloData.name + "!"
+    Greeting.name = "Transformed: " + helloData.name
+    Greeting.timestamp = ${currentDate("ms")}
+}
+```
+Transforms the input data by:
+- Concatenating message and name with punctuation
+- Adding a prefix to the name
+- Setting timestamp to current time
+
+### Flow Control
+```flow
+Flow helloFlow {
+    Start helloData {
+        transition {
+            greetingTransform
+        }
+    }
+    greetingTransform {}
+}
+```
+Defines the execution path: start with `helloData`, then transition to `greetingTransform`.
+
+## 5. Next Steps
+
+Congratulations! You've created your first Wolf DSL flow. Here's what to explore next:
+
+### Learn Core Concepts
+- **[Language Overview](/language/overview)** - Understand Wolf DSL fundamentals
+- **[Node Types](/language/nodes/flow)** - Deep dive into Flow, Service, Mapping, and more
+- **[Expressions](/language/expressions/)** - Master data manipulation and conditionals
+
+### Try More Examples
+- **[Service Node](/language/nodes/service)** - Make REST and GraphQL requests
+- **[Mapping Node](/language/nodes/mapping)** - Advanced data transformation techniques
+- **[Best Practices](/advanced/best-practices)** - Handle failures gracefully and build resilient flows
+
+### Set Up Your IDE
+- **[Installation Guide](/getting-started/installation)** - Configure your development environment with IDE plugins
+
+### Advanced Topics
+- **[Best Practices](/advanced/best-practices)** - Testing, performance, and production patterns
+- **[Functions Reference](/language/functions)** - Master all available functions
+- **[Advanced Topics](/advanced)** - Performance optimization and enterprise patterns
+
+## Common Issues
+
+### Build Fails with "Grammar not found"
+
+Make sure your flow files are in the correct directory structure and use the `.flow` extension.
+
+### Syntax Errors
+
+Wolf DSL is whitespace-sensitive. Ensure proper indentation and check for missing brackets or semicolons.
+
+### IDE Not Recognizing .flow Files
+
+Install the appropriate Wolf DSL plugin for your IDE. See the [Installation Guide](/getting-started/installation) for IDE setup details.
+
+---
+
+You're now ready to start building powerful workflows with Wolf DSL! The declarative syntax makes it easy to express complex business logic while the runtime handles all the performance optimization for you.

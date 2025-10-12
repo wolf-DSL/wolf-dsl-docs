@@ -1,0 +1,581 @@
+---
+title: String Functions
+description: Text manipulation and string processing functions in Wolf DSL
+sidebar_position: 2
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# String Functions
+
+Wolf DSL provides a comprehensive set of string functions for text manipulation, formatting, and processing. These functions are essential for data transformation, validation, and presentation.
+
+## concat()
+
+Concatenates multiple strings or expressions into a single string.
+
+**Syntax:**
+```flow
+result = concat(string1, string2, string3, ...)
+```
+
+**Parameters:**
+- `string1, string2, ...`: Strings or expressions to concatenate
+
+**Returns:** Combined string
+
+**Examples:**
+
+<Tabs>
+<TabItem value="basic" label="Basic Usage">
+
+```flow
+Schema UserData {
+    string firstName
+    string lastName
+    string fullName
+}
+
+Mapping buildUserName input UserData output UserData {
+    UserData.fullName = concat(UserData.firstName, " ", UserData.lastName)
+}
+
+// Input: { firstName: "John", lastName: "Doe" }
+// Output: { fullName: "John Doe" }
+```
+
+</TabItem>
+<TabItem value="multiple" label="Multiple Values">
+
+```flow
+Schema OrderInfo {
+    string orderId
+    string customerName
+    string status
+    string description
+}
+
+Mapping createDescription input OrderInfo output OrderInfo {
+    OrderInfo.description = concat(
+        "Order ", 
+        OrderInfo.orderId, 
+        " for customer ", 
+        OrderInfo.customerName, 
+        " is ", 
+        OrderInfo.status
+    )
+}
+
+// Result: "Order ORD-001 for customer Alice Smith is processing"
+```
+
+</TabItem>
+</Tabs>
+
+## join()
+
+Joins array elements into a single string using a delimiter.
+
+**Syntax:**
+```flow
+result = join(array, delimiter)
+result = join(array, delimiter, lastDelimiter)
+```
+
+**Parameters:**
+- `array`: Array of strings to join
+- `delimiter`: String to insert between elements
+- `lastDelimiter` *(optional)*: Different delimiter for the last element
+
+**Returns:** Joined string
+
+**Examples:**
+
+```flow
+Schema TagData {
+    string[] tags
+    string tagString
+    string niceTagString
+}
+
+Mapping processTags input TagData output TagData {
+    TagData.tagString = join(TagData.tags, ", ")
+    TagData.niceTagString = join(TagData.tags, ", ", " and ")
+}
+
+// Input: { tags: ["red", "blue", "green"] }
+// tagString: "red, blue, green"
+// niceTagString: "red, blue and green"
+```
+
+## split()
+
+Splits a string into an array using a delimiter or regex pattern.
+
+**Syntax:**
+```flow
+result = split(string, delimiter)
+```
+
+**Parameters:**
+- `string`: String to split
+- `delimiter`: String or regex pattern to split on
+
+**Returns:** Array of strings
+
+**Examples:**
+
+<Tabs>
+<TabItem value="comma" label="Comma Delimited">
+
+```flow
+Schema CsvData {
+    string csvLine
+    string[] values
+}
+
+Mapping parseCsv input CsvData output CsvData {
+    CsvData.values = split(CsvData.csvLine, ",")
+}
+
+// Input: { csvLine: "apple,banana,orange" }
+// Output: { values: ["apple", "banana", "orange"] }
+```
+
+</TabItem>
+<TabItem value="whitespace" label="Whitespace">
+
+```flow
+Schema TextData {
+    string sentence
+    string[] words
+}
+
+Mapping extractWords input TextData output TextData {
+    TextData.words = split(TextData.sentence, " ")
+}
+
+// Input: { sentence: "Hello world from Wolf DSL" }
+// Output: { words: ["Hello", "world", "from", "Wolf", "DSL"] }
+```
+
+</TabItem>
+</Tabs>
+
+## contains()
+
+Checks if a string contains a substring.
+
+**Syntax:**
+```flow
+result = contains(string, searchString)
+```
+
+**Parameters:**
+- `string`: String to search in
+- `searchString`: Substring to search for
+
+**Returns:** Boolean (true if found, false otherwise)
+
+**Examples:**
+
+```flow
+Schema ValidationData {
+    string email
+    string message
+    boolean hasValidEmail
+    boolean hasImportantFlag
+}
+
+Mapping validateData input ValidationData output ValidationData {
+    ValidationData.hasValidEmail = contains(ValidationData.email, "@")
+    ValidationData.hasImportantFlag = contains(ValidationData.message, "URGENT")
+}
+
+// Input: { email: "user@example.com", message: "URGENT: Please respond" }
+// Output: { hasValidEmail: true, hasImportantFlag: true }
+```
+
+## replace()
+
+Replaces occurrences of a substring with another string.
+
+**Syntax:**
+```flow
+result = replace(string, searchString, replacement)
+```
+
+**Parameters:**
+- `string`: Original string
+- `searchString`: String to find and replace
+- `replacement`: String to replace with
+
+**Returns:** String with replacements made
+
+**Examples:**
+
+<Tabs>
+<TabItem value="simple" label="Simple Replace">
+
+```flow
+Schema TextProcessing {
+    string originalText
+    string cleanedText
+}
+
+Mapping cleanText input TextProcessing output TextProcessing {
+    TextProcessing.cleanedText = replace(TextProcessing.originalText, "badword", "***")
+}
+
+// Input: { originalText: "This contains badword text" }
+// Output: { cleanedText: "This contains *** text" }
+```
+
+</TabItem>
+<TabItem value="template" label="Template Processing">
+
+```flow
+Schema Template {
+    string template
+    string userName
+    string personalizedMessage
+}
+
+Mapping personalizeMessage input Template output Template {
+    Template.personalizedMessage = replace(
+        Template.template, 
+        "{USER_NAME}", 
+        Template.userName
+    )
+}
+
+// Input: { template: "Hello {USER_NAME}, welcome!", userName: "Alice" }
+// Output: { personalizedMessage: "Hello Alice, welcome!" }
+```
+
+</TabItem>
+</Tabs>
+
+## upperCase()
+
+Converts string to uppercase.
+
+**Syntax:**
+```flow
+result = upperCase(string)
+```
+
+**Parameters:**
+- `string`: String to convert
+
+**Returns:** Uppercase string
+
+**Example:**
+```flow
+Schema UserData {
+    string name
+    string displayName
+}
+
+Mapping formatName input UserData output UserData {
+    UserData.displayName = upperCase(UserData.name)
+}
+
+// Input: { name: "john doe" }
+// Output: { displayName: "JOHN DOE" }
+```
+
+## lowerCase()
+
+Converts string to lowercase.
+
+**Syntax:**
+```flow
+result = lowerCase(string)
+```
+
+**Parameters:**
+- `string`: String to convert
+
+**Returns:** Lowercase string
+
+**Example:**
+```flow
+Schema UserData {
+    string email
+    string normalizedEmail
+}
+
+Mapping normalizeEmail input UserData output UserData {
+    UserData.normalizedEmail = lowerCase(UserData.email)
+}
+
+// Input: { email: "USER@EXAMPLE.COM" }
+// Output: { normalizedEmail: "user@example.com" }
+```
+
+## length()
+
+Returns the length of a string or array.
+
+**Syntax:**
+```flow
+result = length(string)
+result = length(array)
+```
+
+**Parameters:**
+- `string`: String to measure
+- `array`: Array to count
+
+**Returns:** Number representing length/count
+
+**Examples:**
+
+<Tabs>
+<TabItem value="string" label="String Length">
+
+```flow
+Schema TextData {
+    string content
+    number contentLength
+    boolean isLongContent
+}
+
+Mapping analyzeContent input TextData output TextData {
+    TextData.contentLength = length(TextData.content)
+    TextData.isLongContent = TextData.contentLength > 100
+}
+
+// Input: { content: "Hello World" }
+// Output: { contentLength: 11, isLongContent: false }
+```
+
+</TabItem>
+<TabItem value="array" label="Array Length">
+
+```flow
+Schema ListData {
+    string[] items
+    number itemCount
+    boolean hasItems
+}
+
+Mapping countItems input ListData output ListData {
+    ListData.itemCount = length(ListData.items)
+    ListData.hasItems = ListData.itemCount > 0
+}
+
+// Input: { items: ["a", "b", "c"] }
+// Output: { itemCount: 3, hasItems: true }
+```
+
+</TabItem>
+</Tabs>
+
+## extract()
+
+Extracts a substring using range notation.
+
+**Syntax:**
+```flow
+result = extract(string, range)
+```
+
+**Parameters:**
+- `string`: Source string
+- `range`: Range specification (e.g., "0..5", "2..", "..10")
+
+**Returns:** Extracted substring
+
+**Examples:**
+
+```flow
+Schema TextExtraction {
+    string fullText
+    string beginning
+    string ending
+    string middle
+}
+
+Mapping extractParts input TextExtraction output TextExtraction {
+    TextExtraction.beginning = extract(TextExtraction.fullText, "0..5")    // First 5 chars
+    TextExtraction.ending = extract(TextExtraction.fullText, "-3..")       // Last 3 chars
+    TextExtraction.middle = extract(TextExtraction.fullText, "5..10")      // Chars 5-10
+}
+
+// Input: { fullText: "Hello World from Wolf DSL" }
+// beginning: "Hello"
+// ending: "DSL"
+// middle: " Worl"
+```
+
+## translateUnicode()
+
+Converts Unicode escape sequences to actual characters.
+
+**Syntax:**
+```flow
+result = translateUnicode(string)
+```
+
+**Parameters:**
+- `string`: String with Unicode escape sequences
+
+**Returns:** String with Unicode characters converted
+
+**Example:**
+```flow
+Schema UnicodeData {
+    string encodedText
+    string decodedText
+}
+
+Mapping decodeUnicode input UnicodeData output UnicodeData {
+    UnicodeData.decodedText = translateUnicode(UnicodeData.encodedText)
+}
+
+// Input: { encodedText: "Hello\\u0020World" }
+// Output: { decodedText: "Hello World" }
+```
+
+## Real-World Examples
+
+### Email Validation and Formatting
+
+```flow
+Schema EmailProcessor {
+    string rawEmail
+    string cleanEmail
+    boolean isValid
+    string domain
+    string username
+}
+
+Mapping processEmail input EmailProcessor output EmailProcessor {
+    // Clean and normalize
+    EmailProcessor.cleanEmail = lowerCase(replace(EmailProcessor.rawEmail, " ", ""))
+    
+    // Validate format
+    EmailProcessor.isValid = contains(EmailProcessor.cleanEmail, "@") && 
+                            length(EmailProcessor.cleanEmail) > 5
+    
+    // Extract parts
+    emailParts = split(EmailProcessor.cleanEmail, "@")
+    EmailProcessor.username = emailParts[0]
+    EmailProcessor.domain = if length(emailParts) > 1 then emailParts[1] else ""
+}
+```
+
+### Text Content Analysis
+
+```flow
+Schema ContentAnalyzer {
+    string content
+    string[] words
+    string[] sentences
+    number wordCount
+    number sentenceCount
+    boolean isLongForm
+    string summary
+}
+
+Mapping analyzeContent input ContentAnalyzer output ContentAnalyzer {
+    // Split into sentences and words
+    ContentAnalyzer.sentences = split(ContentAnalyzer.content, ".")
+    ContentAnalyzer.words = split(ContentAnalyzer.content, " ")
+    
+    // Calculate metrics
+    ContentAnalyzer.wordCount = length(ContentAnalyzer.words)
+    ContentAnalyzer.sentenceCount = length(ContentAnalyzer.sentences)
+    ContentAnalyzer.isLongForm = ContentAnalyzer.wordCount > 500
+    
+    // Create summary
+    ContentAnalyzer.summary = concat(
+        "Content has ",
+        ContentAnalyzer.wordCount,
+        " words in ",
+        ContentAnalyzer.sentenceCount,
+        " sentences"
+    )
+}
+```
+
+### Template Processing System
+
+```flow
+Schema TemplateProcessor {
+    string template
+    string userName
+    string orderNumber
+    string date
+    string personalizedContent
+}
+
+Mapping processTemplate input TemplateProcessor output TemplateProcessor {
+    // Multi-step replacement
+    step1 = replace(TemplateProcessor.template, "{{USER_NAME}}", TemplateProcessor.userName)
+    step2 = replace(step1, "{{ORDER_NUMBER}}", TemplateProcessor.orderNumber)
+    step3 = replace(step2, "{{DATE}}", TemplateProcessor.date)
+    
+    TemplateProcessor.personalizedContent = step3
+}
+
+// Template: "Dear {{USER_NAME}}, your order {{ORDER_NUMBER}} from {{DATE}} is ready."
+// Result: "Dear Alice, your order ORD-12345 from 2023-12-15 is ready."
+```
+
+## Best Practices
+
+### 1. Handle Null and Empty Values
+```flow
+//  Good: Safe string operations
+safeResult = if inputString != null && inputString != "" 
+             then upperCase(inputString) 
+             else "DEFAULT"
+
+//  Good: Use length() for empty checks
+hasContent = length(content) > 0
+```
+
+### 2. Chain Operations for Readability
+```flow
+//  Good: Clear step-by-step processing
+cleanedEmail = lowerCase(
+    replace(
+        replace(rawEmail, " ", ""),
+        "\t", ""
+    )
+)
+
+// Or use intermediate variables
+step1 = replace(rawEmail, " ", "")
+step2 = replace(step1, "\t", "")
+cleanedEmail = lowerCase(step2)
+```
+
+### 3. Use Appropriate Functions for Data Types
+```flow
+//  Good: Use join() for arrays
+tagString = join(tags, ", ")
+
+//  Good: Use concat() for known strings
+fullName = concat(firstName, " ", lastName)
+```
+
+### 4. Validate Before Processing
+```flow
+//  Good: Validate before expensive operations
+processedText = if length(inputText) > 0 
+                then upperCase(replace(inputText, "old", "new"))
+                else ""
+```
+
+## Related Topics
+
+- **[Collection Functions](collection-functions)** - Array and list operations
+- **[Date Functions](date-functions)** - Date and time manipulation
+- **[Mapping Node](/language/nodes/mapping)** - Using functions in data transformations
+- **[Expression System](/language/expressions)** - Function usage in expressions
+

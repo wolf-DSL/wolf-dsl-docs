@@ -1,0 +1,490 @@
+---
+title: Installation
+description: Install Wolf DSL tools and configure your development environment
+sidebar_position: 2
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Installation Guide
+
+This guide walks you through installing Wolf DSL tools and setting up your development environment. Choose the installation method that best fits your project setup.
+
+## Prerequisites
+
+Before installing Wolf DSL, ensure you have:
+
+- **Java 8+** (Java 11+ recommended)
+- **Maven 3.6+** or **Gradle 6+**
+- Your preferred IDE (VS Code, IntelliJ IDEA, or Eclipse)
+
+### Verify Prerequisites
+
+```bash
+# Check Java version
+java -version
+
+# Check Maven version  
+mvn -version
+
+# Check Gradle version (if using Gradle)
+gradle -version
+```
+
+## Project Setup
+
+### Create New Project
+
+<Tabs>
+<TabItem value="maven" label="Maven Project">
+
+Create a new Maven project with Wolf DSL support:
+
+```bash
+mvn archetype:generate \
+  -DgroupId=com.example.wolfproject \
+  -DartifactId=my-wolf-flows \
+  -DarchetypeArtifactId=maven-archetype-quickstart \
+  -DinteractiveMode=false
+
+cd my-wolf-flows
+```
+
+Replace the generated `pom.xml` with Wolf DSL configuration:
+
+```xml title="pom.xml"
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    
+    <groupId>com.example.wolfproject</groupId>
+    <artifactId>my-wolf-flows</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+    
+    <name>My Wolf DSL Flows</name>
+    <description>Wolf DSL flow definitions</description>
+    
+    <properties>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <wolf.version>1.0.0</wolf.version>
+    </properties>
+    
+    <dependencies>
+        <!-- Wolf DSL Runtime (if needed for testing) -->
+        <dependency>
+            <groupId>com.intuit.dsl.flow</groupId>
+            <artifactId>wolf-runtime-core</artifactId>
+            <version>${wolf.version}</version>
+        </dependency>
+        
+        <!-- Testing -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.2</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+    
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.intuit.dsl.flow</groupId>
+                <artifactId>wolf-maven-plugin</artifactId>
+                <version>${wolf.version}</version>
+                <configuration>
+                    <flowDirectories>
+                        <param>src/main/resources/flows</param>
+                    </flowDirectories>
+                    <outputDirectory>target/generated-sources/wolf</outputDirectory>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+```
+
+</TabItem>
+<TabItem value="gradle" label="Gradle Project">
+
+Create a new Gradle project:
+
+```bash
+mkdir my-wolf-flows
+cd my-wolf-flows
+gradle init --type java-application --dsl kotlin
+```
+
+Replace the generated `build.gradle.kts` with Wolf DSL configuration:
+
+```kotlin title="build.gradle.kts"
+plugins {
+    id("java")
+    id("com.intuit.dsl.flow.wolf-plugin") version "1.0.0"
+}
+
+group = "com.example.wolfproject"
+version = "1.0.0"
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
+repositories {
+    mavenCentral()
+    // Add Wolf DSL repository if needed
+    maven {
+        url = uri("https://repo.intuit.com/artifactory/wolf-dsl/")
+    }
+}
+
+dependencies {
+    // Wolf DSL Runtime (if needed for testing)
+    implementation("com.intuit.dsl.flow:wolf-runtime-core:1.0.0")
+    
+    // Testing
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.2")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.2")
+}
+
+wolf {
+    flowDirectories = listOf("src/main/resources/flows")
+    outputDirectory = "build/generated-sources/wolf"
+}
+
+tasks.test {
+    useJUnitPlatform()
+}
+```
+
+</TabItem>
+</Tabs>
+
+### Directory Structure
+
+Create the recommended directory structure:
+
+```bash
+mkdir -p src/main/resources/flows
+mkdir -p src/test/resources/flows
+mkdir -p src/main/resources/config
+```
+
+Your project structure should look like:
+
+```
+my-wolf-flows/
+ pom.xml (or build.gradle.kts)
+ src/
+�    main/
+�   �    resources/
+�   �        flows/           # Wolf DSL .flow files
+�   �        config/          # Configuration files
+�    test/
+�        resources/
+�            flows/           # Test flows
+ README.md
+```
+
+## IDE Plugin Installation
+
+### VS Code Extension
+
+**Automatic Installation** (recommended):
+```bash
+code --install-extension intuit.wolf-dsl-support
+```
+
+**Manual Installation**:
+1. Download the latest `.vsix` file from [Releases](https://github.com/intuit/wolf-dsl-vscode/releases)
+2. Open VS Code
+3. Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on macOS)
+4. Type "Extensions: Install from VSIX"
+5. Select the downloaded `.vsix` file
+
+**Features**:
+- Syntax highlighting for `.flow` files
+- Real-time validation and error reporting
+- Code completion and snippets
+- Outline view for flows
+- Go to definition for schemas and nodes
+
+### IntelliJ IDEA Plugin
+
+**From Marketplace**:
+1. Open IntelliJ IDEA
+2. Go to `File > Settings > Plugins` (or `IntelliJ IDEA > Preferences > Plugins` on macOS)
+3. Click `Marketplace` tab
+4. Search for "Wolf DSL"
+5. Click `Install`
+6. Restart IntelliJ IDEA
+
+**Manual Installation**:
+1. Download the latest `.jar` file from [Releases](https://github.com/intuit/wolf-dsl-intellij/releases)
+2. Go to `File > Settings > Plugins`
+3. Click gear icon and select `Install Plugin from Disk...`
+4. Select the downloaded `.jar` file
+5. Restart IntelliJ IDEA
+
+**Features**:
+- Advanced syntax highlighting
+- Code completion with context awareness
+- Refactoring support
+- Integrated debugging
+- Project templates
+- Live templates for common patterns
+
+### Eclipse Plugin
+
+**Via Update Site**:
+1. Open Eclipse
+2. Go to `Help > Install New Software...`
+3. Add update site: `https://intuit.github.io/wolf-dsl-eclipse/`
+4. Select "Wolf DSL Eclipse Support"
+5. Follow installation wizard
+6. Restart Eclipse
+
+**Manual Installation**:
+1. Download the update site archive from [Releases](https://github.com/intuit/wolf-dsl-eclipse/releases)
+2. Go to `Help > Install New Software...`
+3. Click `Add > Archive...` and select the downloaded file
+4. Follow installation wizard
+
+## Configuration Files
+
+### Application Configuration
+
+Create a configuration file for your Wolf DSL flows:
+
+```yaml title="src/main/resources/config/application.yml"
+wolf:
+  engine:
+    timeout: 30000
+    max-threads: 10
+    retry-attempts: 3
+  
+  validation:
+    strict-mode: true
+    fail-on-warning: false
+
+# Service endpoints
+api:
+  base:
+    url: "https://api.example.com"
+    timeout: 5000
+  
+  auth:
+    token: "${AUTH_TOKEN:default-token}"
+    
+# Environment-specific settings
+app:
+  environment: "${APP_ENV:development}"
+  version: "1.0.0"
+```
+
+### Environment Variables
+
+Create a `.env` file for local development:
+
+```bash title=".env"
+# API Configuration
+AUTH_TOKEN=your-api-token-here
+APP_ENV=development
+
+# Database (if needed)
+DB_URL=jdbc:h2:mem:testdb
+DB_USER=sa
+DB_PASSWORD=
+
+# Logging
+LOG_LEVEL=INFO
+```
+
+:::caution
+Never commit sensitive information like API keys to version control. Use environment variables or secure vaults in production.
+:::
+
+## Verify Installation
+
+### Test Build
+
+<Tabs>
+<TabItem value="maven" label="Maven">
+
+```bash
+# Compile and validate flows
+mvn clean compile
+
+# Run tests
+mvn test
+
+# Package project
+mvn package
+```
+
+Expected output:
+```
+[INFO] --- wolf-maven-plugin:1.0.0:compile (default) @ my-wolf-flows ---
+[INFO] Compiling Wolf DSL flows from: src/main/resources/flows
+[INFO] Found 0 flow files to compile
+[INFO] Wolf DSL compilation completed successfully
+```
+
+</TabItem>
+<TabItem value="gradle" label="Gradle">
+
+```bash
+# Compile and validate flows
+./gradlew build
+
+# Run specific Wolf DSL tasks
+./gradlew wolfCompile
+
+# Run tests
+./gradlew test
+```
+
+Expected output:
+```
+> Task :wolfCompile
+Compiling Wolf DSL flows...
+Found 0 flow files in src/main/resources/flows
+Wolf DSL compilation completed successfully
+
+BUILD SUCCESSFUL
+```
+
+</TabItem>
+</Tabs>
+
+### Create Test Flow
+
+Create a simple test flow to verify everything works:
+
+```flow title="src/main/resources/flows/hello-world.flow"
+Schema Greeting {
+    string message
+    string timestamp
+}
+
+value helloWorld -> Greeting {
+    message: "Hello, Wolf DSL!"
+    timestamp: ${currentDate("yyyy-MM-dd HH:mm:ss")}
+}
+
+Mapping formatGreeting input helloWorld output Greeting {
+    Greeting.message = " " + helloWorld.message
+    Greeting.timestamp = helloWorld.timestamp
+}
+
+Flow helloFlow {
+    Start helloWorld {
+        transition { formatGreeting }
+    }
+    formatGreeting {}
+}
+```
+
+### Validate Test Flow
+
+<Tabs>
+<TabItem value="maven" label="Maven">
+
+```bash
+mvn compile
+```
+
+You should see:
+```
+[INFO] --- wolf-maven-plugin:1.0.0:compile (default) @ my-wolf-flows ---
+[INFO] Compiling Wolf DSL flows from: src/main/resources/flows
+[INFO] Compiling: hello-world.flow
+[INFO]  hello-world.flow compiled successfully
+[INFO] Wolf DSL compilation completed successfully
+```
+
+</TabItem>
+<TabItem value="gradle" label="Gradle">
+
+```bash
+./gradlew wolfCompile
+```
+
+You should see:
+```
+> Task :wolfCompile
+Compiling Wolf DSL flows...
+Processing: hello-world.flow
+### hello-world.flow compiled successfully
+Wolf DSL compilation completed successfully
+```
+
+</TabItem>
+</Tabs>
+
+## Troubleshooting
+
+### Common Issues
+
+#### "Plugin not found" Error
+
+**Problem**: Build fails with "Plugin com.intuit.dsl.flow:wolf-maven-plugin not found"
+
+**Solution**: 
+1. Check that you're using the correct plugin coordinates
+2. Ensure you have access to the Wolf DSL repository
+3. Try with a different version: `1.0.1`, `1.0.0-SNAPSHOT`
+
+#### IDE Plugin Not Working
+
+**Problem**: IDE doesn't recognize `.flow` files
+
+**Solution**:
+1. Restart your IDE completely
+2. Check that the plugin is enabled in settings
+3. Verify file association: `.flow` files should be associated with Wolf DSL
+4. Try creating a new `.flow` file to trigger plugin activation
+
+#### Compilation Errors
+
+**Problem**: Flows fail to compile with syntax errors
+
+**Solution**:
+1. Check for proper schema definitions
+2. Ensure all referenced schemas exist
+3. Verify expression syntax (remember to use `${}` for expressions)
+4. Check that all transition targets exist in your flow
+
+### Getting Help
+
+- **Documentation**: [Wolf DSL Docs](https://intuit.github.io/wolf-dsl/)
+- **GitHub Issues**: [Report problems](https://github.com/intuit/flow-language-spec/issues)
+- **Discussions**: [Ask questions](https://github.com/intuit/flow-language-spec/discussions)
+
+## Next Steps
+
+Now that you have Wolf DSL installed:
+
+1. **[Complete the Quickstart Tutorial](/getting-started/quickstart)** - Build your first working flow
+2. **[IDE Plugin Setup](#ide-plugin-installation)** - Configure advanced IDE features
+3. **[Explore Examples](/examples)** - Learn from practical patterns
+4. **[Read Language Reference](/language/overview)** - Master Wolf DSL syntax
+
+---
+
+*Your Wolf DSL development environment is now ready! Start building powerful declarative flows.* 

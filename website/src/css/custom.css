@@ -1,0 +1,355 @@
+/**
+ * Wolf DSL Documentation Custom Styles
+ * Inspired by modern documentation sites with clean, professional appearance
+ */
+
+:root {
+  /* Wolf DSL Brand Colors */
+  --wolf-primary: #2563eb;
+  --wolf-primary-dark: #1d4ed8;
+  --wolf-secondary: #7c3aed;
+  --wolf-accent: #06b6d4;
+  
+  /* Docusaurus Theme Overrides */
+  --ifm-color-primary: var(--wolf-primary);
+  --ifm-color-primary-dark: var(--wolf-primary-dark);
+  --ifm-color-primary-darker: #1e40af;
+  --ifm-color-primary-darkest: #1e3a8a;
+  --ifm-color-primary-light: #3b82f6;
+  --ifm-color-primary-lighter: #60a5fa;
+  --ifm-color-primary-lightest: #93c5fd;
+  
+  /* Typography */
+  --ifm-font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 
+                          Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 
+                          'Helvetica Neue', sans-serif;
+  --ifm-font-family-monospace: 'JetBrains Mono', 'Fira Code', 'Monaco', 
+                               'Cascadia Code', 'Roboto Mono', Consolas, 
+                               'Courier New', monospace;
+  
+  /* Code Blocks */
+  --ifm-code-font-size: 0.9em;
+  --ifm-code-background: #f8fafc;
+  --ifm-code-border-radius: 0.5rem;
+  --ifm-code-padding-horizontal: 0.75rem;
+  --ifm-code-padding-vertical: 0.5rem;
+  
+  /* Layout */
+  --ifm-container-width: 1200px;
+  --ifm-container-width-xl: 1400px;
+  
+  /* Sidebar */
+  --ifm-sidebar-width: 280px;
+  
+  /* Navbar */
+  --ifm-navbar-height: 4rem;
+  --ifm-navbar-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+}
+
+/* Dark theme colors */
+[data-theme='dark'] {
+  --ifm-color-primary: #60a5fa;
+  --ifm-color-primary-dark: #3b82f6;
+  --ifm-color-primary-darker: #2563eb;
+  --ifm-color-primary-darkest: #1d4ed8;
+  --ifm-color-primary-light: #93c5fd;
+  --ifm-color-primary-lighter: #bfdbfe;
+  --ifm-color-primary-lightest: #dbeafe;
+  
+  --ifm-code-background: #1f2937;
+}
+
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* Global Improvements */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Enhanced Code Blocks */
+.theme-code-block {
+  --prism-background-color: var(--ifm-code-background);
+  border-radius: var(--ifm-code-border-radius);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  margin-bottom: 1.5rem;
+}
+
+[data-theme='dark'] .theme-code-block {
+  box-shadow: 0 1px 3px 0 rgb(255 255 255 / 0.1), 0 1px 2px -1px rgb(255 255 255 / 0.1);
+}
+
+/* Inline Code Enhancement */
+code:not(.theme-code-block code) {
+  background: var(--ifm-code-background);
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 0.375rem;
+  font-size: 0.875em;
+  padding: 0.125rem 0.375rem;
+}
+
+[data-theme='dark'] code:not(.theme-code-block code) {
+  background: var(--ifm-color-emphasis-200);
+  border-color: var(--ifm-color-emphasis-300);
+}
+
+/* Flow Language Syntax Highlighting */
+.prism-code .token.keyword {
+  color: #7c3aed;
+}
+
+.prism-code .token.string {
+  color: #059669;
+}
+
+.prism-code .token.number {
+  color: #dc2626;
+}
+
+.prism-code .token.operator {
+  color: #4f46e5;
+}
+
+.prism-code .token.comment {
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* Wolf DSL Specific Syntax */
+.prism-code .token.wolf-node {
+  color: var(--wolf-primary);
+  font-weight: 600;
+}
+
+.prism-code .token.wolf-schema {
+  color: var(--wolf-secondary);
+  font-weight: 500;
+}
+
+.prism-code .token.wolf-expression {
+  color: var(--wolf-accent);
+}
+
+/* Enhanced Admonitions */
+.alert {
+  border-radius: 0.75rem;
+  border-width: 0;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.alert--info {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  color: #1e40af;
+}
+
+.alert--tip {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  color: #065f46;
+}
+
+.alert--warning {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  color: #92400e;
+}
+
+.alert--danger {
+  background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%);
+  color: #991b1b;
+}
+
+[data-theme='dark'] .alert--info {
+  background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%);
+  color: #bfdbfe;
+}
+
+[data-theme='dark'] .alert--tip {
+  background: linear-gradient(135deg, #064e3b 0%, #047857 100%);
+  color: #a7f3d0;
+}
+
+[data-theme='dark'] .alert--warning {
+  background: linear-gradient(135deg, #78350f 0%, #92400e 100%);
+  color: #fcd34d;
+}
+
+[data-theme='dark'] .alert--danger {
+  background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
+  color: #fca5a5;
+}
+
+/* Enhanced Tables */
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+  margin-bottom: 1.5rem;
+}
+
+table thead th {
+  background: var(--ifm-color-primary);
+  color: white;
+  font-weight: 600;
+  padding: 1rem;
+}
+
+table tbody td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+}
+
+table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Copy Button Enhancement */
+.theme-code-block .theme-code-block-highlighted-line {
+  background-color: rgb(72, 77, 91, 0.2);
+  margin: 0 calc(-1 * var(--ifm-pre-padding));
+  padding: 0 var(--ifm-pre-padding);
+}
+
+/* Navigation Improvements */
+.navbar {
+  box-shadow: var(--ifm-navbar-shadow);
+  backdrop-filter: blur(8px);
+}
+
+.navbar__brand {
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.navbar__logo {
+  height: 2rem;
+}
+
+/* Sidebar Improvements */
+.theme-doc-sidebar-container {
+  background: var(--ifm-background-surface-color);
+  border-right: 1px solid var(--ifm-color-emphasis-200);
+}
+
+.menu__link--active {
+  border-radius: 0.5rem;
+  font-weight: 600;
+}
+
+.menu__link:hover {
+  border-radius: 0.5rem;
+}
+
+/* Content Improvements */
+.markdown h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 1.5rem;
+}
+
+.markdown h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-top: 2.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.markdown h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  :root {
+    --ifm-sidebar-width: 100vw;
+  }
+  
+  .container {
+    max-width: 100%;
+    padding: 0 1rem;
+  }
+}
+
+/* Search Enhancement */
+.DocSearch-Button {
+  border-radius: 0.75rem;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  background: var(--ifm-color-emphasis-100);
+}
+
+.DocSearch-Button:hover {
+  background: var(--ifm-color-emphasis-200);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+/* Footer Improvements */
+.footer {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+}
+
+.footer__title {
+  color: #f9fafb;
+  font-weight: 600;
+}
+
+.footer__link-item {
+  color: #d1d5db;
+  transition: color 0.2s ease;
+}
+
+.footer__link-item:hover {
+  color: var(--wolf-primary);
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.markdown > * {
+  animation: fadeInUp 0.5s ease-out;
+}
+
+/* Wolf DSL Custom Classes */
+.wolf-hero {
+  background: linear-gradient(135deg, var(--wolf-primary) 0%, var(--wolf-secondary) 100%);
+  color: white;
+  padding: 4rem 0;
+  margin-bottom: 2rem;
+}
+
+.wolf-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin: 2rem 0;
+}
+
+.wolf-feature-card {
+  background: var(--ifm-color-emphasis-100);
+  border-radius: 1rem;
+  padding: 2rem;
+  border: 1px solid var(--ifm-color-emphasis-200);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.wolf-feature-card:hover {
+  transform: translateY(-0.25rem);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+}
+
+[data-theme='dark'] .wolf-feature-card {
+  background: var(--ifm-color-emphasis-200);
+}

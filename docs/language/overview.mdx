@@ -1,0 +1,399 @@
+---
+title: Language Overview
+description: Core concepts and mental model for Wolf DSL
+sidebar_position: 1
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Wolf DSL Language Overview
+
+Wolf DSL is designed around the principle of **declarative programming** - you describe *what* you want to happen rather than *how* to make it happen. This guide covers the fundamental concepts and mental model.
+
+## Core Philosophy
+
+Wolf DSL follows these key principles:
+
+- **Declarative over Imperative**: Describe the desired outcome, not the implementation steps
+- **Data-Driven**: Everything flows through well-defined data structures
+- **Composable**: Build complex workflows from simple, reusable components
+- **Type-Safe**: Schema validation ensures data integrity throughout the flow
+
+## Mental Model
+
+Think of Wolf DSL as a **data pipeline** where:
+
+1. **Data** flows through defined **schemas**
+2. **Nodes** transform or process the data
+3. **Flows** orchestrate the execution path
+4. **Expressions** manipulate and evaluate data
+
+```
+Input Data → Node 1 → Node 2 → Node 3 → Output Data
+```
+
+## Essential Node Types
+
+Wolf DSL provides several node types, each serving a specific purpose:
+
+### 1. Schema - Data Structure Definitions
+
+**Schemas** define the shape and types of data flowing through your system:
+
+```flow
+Schema User {
+    string name
+    string email
+    boolean isActive
+    Address address
+}
+
+Schema Address {
+    string street
+    string city
+    string zipCode
+}
+```
+
+**Key Points:**
+- All data must conform to a schema
+- Supports primitive types (`string`, `number`, `boolean`) and nested objects
+- Enables type checking and validation
+
+### 2. Value - Static and Dynamic Data
+
+**Value nodes** create data instances:
+
+```flow
+// Static data
+value staticUser -> User {
+    name: "John Doe"
+    email: "john@example.com"
+    isActive: true
+    address: {
+        street: "123 Main St"
+        city: "Anytown" 
+        zipCode: "12345"
+    }
+}
+
+// Dynamic data with expressions
+value dynamicUser -> User {
+    name: ${"User_" + currentDate("yyyyMMdd")}
+    email: ${"user" + uuid() + "@example.com"}
+    isActive: ${true}
+}
+```
+
+### 3. Service - External API Calls
+
+**Service nodes** make REST or GraphQL calls:
+
+```flow
+Service userService method GET as getUserById
+input UserRequest output User {
+    Url -> @Config("api.base.url")
+    Path -> ${"/users/" + UserRequest.id}
+    Timeout -> ${5000}
+    @Header Authorization -> ${"Bearer " + @Config("api.token")}
+    @Header Accept -> ${"application/json"}
+}
+```
+
+### 4. Mapping - Data Transformation
+
+**Mapping nodes** transform data from one schema to another:
+
+```flow
+Mapping userTransform input RawUser output User {
+    User.name = RawUser.firstName + " " + RawUser.lastName
+    User.email = lowerCase(RawUser.emailAddress)
+    User.isActive = RawUser.status == "active"
+}
+```
+
+### 5. Flow - Execution Orchestration
+
+**Flow nodes** define the execution path and transitions:
+
+```flow
+Flow userProcessingFlow {
+    Start userRequest {
+        transition {
+            userRequest.useCache == true ? cachedUserMapping : getUserById
+        }
+    }
+    
+    getUserById {
+        transition {
+            // Success path
+            userTransform
+        }
+    }
+    
+    cachedUserMapping {}
+    userTransform {}
+}
+```
+
+## Data Flow Patterns
+
+### Linear Flow
+Data moves through nodes sequentially:
+
+```flow
+Flow linearFlow {
+    Start inputData {
+        transition { nodeA }
+    }
+    nodeA {
+        transition { nodeB }
+    }
+    nodeB {
+        transition { nodeC }  
+    }
+    nodeC {}
+}
+```
+
+### Conditional Flow
+Data path depends on runtime conditions:
+
+```flow
+Flow conditionalFlow {
+    Start inputData {
+        transition {
+            inputData.type == "premium" ? premiumService : basicService
+        }
+    }
+    premiumService {}
+    basicService {}
+}
+```
+
+### Multi-way Branching
+Complex decision logic:
+
+```flow
+Flow branchingFlow {
+    Start request {
+        transition {
+            when request.priority == "high" then highPriorityHandler
+            when request.priority == "medium" then mediumPriorityHandler
+            otherwise do lowPriorityHandler
+        }
+    }
+    highPriorityHandler {}
+    mediumPriorityHandler {}
+    lowPriorityHandler {}
+}
+```
+
+## Expression System
+
+Wolf DSL includes a rich expression language for data manipulation:
+
+### Arithmetic Operations
+```flow
+result = price * quantity + tax
+discount = price * 0.1
+total = price - discount
+```
+
+### String Operations  
+```flow
+fullName = firstName + " " + lastName
+email = lowerCase(emailInput)
+formatted = "Hello, " + name + "!"
+```
+
+### Boolean Logic
+```flow
+isValid = age >= 18 && hasPermission == true
+shouldProcess = status == "active" or priority == "high"
+isEligible = age >= 21 && income > 50000
+```
+
+### Function Calls
+```flow
+currentTime = currentDate("yyyy-MM-dd HH:mm:ss")
+userId = uuid()
+itemCount = length(items)
+filteredItems = filter(items, item -> item.active == true)
+```
+
+### Conditional Expressions
+```flow
+status = if age >= 18 then "adult" else "minor"
+price = if quantity > 10 then basePrice * 0.9 else basePrice
+```
+
+## Built-in Functions
+
+Wolf DSL provides many built-in functions for common operations:
+
+<Tabs>
+<TabItem value="string" label="String Functions">
+
+```flow
+// String manipulation
+upperName = upperCase(name)
+lowerEmail = lowerCase(email)
+parts = split(fullName, " ")
+combined = concat(firstName, " ", lastName)
+hasSubstring = contains(text, "search term")
+replaced = replace(text, "old", "new")
+```
+
+</TabItem>
+<TabItem value="collection" label="Collection Functions">
+
+```flow
+// Array/Collection operations
+itemCount = length(items)
+firstItem = items[0]
+filtered = filter(items, item -> item.price > 100)
+sorted = sort(items, item.name)
+mapped = map(items, item -> item.name)
+joined = join(names, ", ")
+unique = dedup(items)
+```
+
+</TabItem>
+<TabItem value="date" label="Date Functions">
+
+```flow
+// Date operations
+now = currentDate("yyyy-MM-dd")
+timestamp = currentDate("ms")
+formatted = dateFormat("ms", "yyyy-MM-dd", timestamp)
+difference = dayDifference(startDate, endDate, "yyyy-MM-dd")
+future = addToDate(now, "yyyy-MM-dd", 30, "Days")
+```
+
+</TabItem>
+</Tabs>
+
+## Configuration and Environment
+
+Wolf DSL supports external configuration through `@Config()` references:
+
+```flow
+Service apiService method GET as getData {
+    Url -> @Config("api.base.url")           // From config file
+    Timeout -> @Config("api.timeout")        // Environment-specific
+    @Header ApiKey -> @Config("api.key")     // Secure credentials
+}
+
+Mapping transform input data {
+    environment = @Config("app.environment")  // Runtime environment
+    version = @Config("app.version")          // Application metadata
+}
+```
+
+## Error Handling
+
+Wolf DSL provides several mechanisms for handling errors:
+
+### Service Error Handling
+```flow
+Service externalApi method GET as callApi
+input Request output Response {
+    Url -> @Config("api.url")
+    Retry -> ${3}                    // Automatic retries
+    Timeout -> ${5000}               // Timeout in milliseconds
+}
+```
+
+### Conditional Error Paths
+```flow
+Flow resilientFlow {
+    Start request {
+        transition {
+            @Config("fallback.enabled") == "true" ? primaryService : fallbackMapping
+        }
+    }
+    primaryService {
+        transition {
+            // On success, continue to transform
+            // On failure, runtime can redirect to error handler
+            transformResult
+        }
+    }
+    fallbackMapping {}
+    transformResult {}
+}
+```
+
+## Best Practices
+
+### 1. Schema-First Design
+Always define schemas before creating flows:
+
+```flow
+//  Good: Clear schema definition
+Schema UserProfile {
+    string userId
+    string email
+    UserPreferences preferences
+}
+
+//  Avoid: Implicit or unclear data structures
+```
+
+### 2. Meaningful Names
+Use descriptive names for all components:
+
+```flow
+//  Good: Clear, descriptive names
+Service userProfileService method GET as getUserProfile
+Mapping enrichUserData input rawProfile output UserProfile
+
+//  Avoid: Generic or cryptic names  
+Service svc1 method GET as doThing
+Mapping map1 input data output result
+```
+
+### 3. Single Responsibility
+Each node should have one clear purpose:
+
+```flow
+//  Good: Focused transformations
+Mapping validateUser input UserInput output ValidationResult { ... }
+Mapping formatUserData input User output FormattedUser { ... }
+
+//  Avoid: Multi-purpose mappings that do too much
+Mapping validateAndFormatAndLog input UserInput output Result { ... }
+```
+
+### 4. Configuration Externalization
+Keep environment-specific values in configuration:
+
+```flow
+//  Good: Externalized configuration
+Service paymentService method POST as processPayment {
+    Url -> @Config("payment.api.url")
+    @Header ApiKey -> @Config("payment.api.key")
+}
+
+//  Avoid: Hardcoded values
+Service paymentService method POST as processPayment {
+    Url -> "https://api.payments.com"
+    @Header ApiKey -> "secret-key-123"
+}
+```
+
+## Next Steps
+
+Now that you understand the core concepts, dive deeper into specific areas:
+
+- **[Grammar Reference](/language/grammar)** - Complete syntax rules and examples
+- **[Node Types](/language/nodes/flow)** - Comprehensive guide to each node type
+- **[Expressions](/language/expressions/)** - Master the expression system
+- **[Functions](/language/functions/)** - Complete function reference
+- **[Examples](/examples/)** - Practical patterns and recipes
+
+---
+
+The declarative nature of Wolf DSL makes it easy to read, maintain, and reason about complex workflows. The type system ensures data integrity, while the rich expression language provides the flexibility needed for real-world use cases.

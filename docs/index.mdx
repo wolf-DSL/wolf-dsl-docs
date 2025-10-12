@@ -1,0 +1,111 @@
+---
+slug: /
+sidebar_position: 1
+title: Wolf DSL Documentation
+description: Wolf DSL is a domain-specific language for service orchestration and data transformation using declarative flows.
+---
+
+# Wolf DSL Documentation
+
+Welcome to **Wolf DSL** - a powerful domain-specific language for service orchestration and data transformation. Wolf DSL enables you to build complex workflows using simple, declarative `.flow` files.
+
+## What is Wolf DSL?
+
+Wolf DSL is a declarative language framework that enables:
+
+- **Service Orchestration**: Chain REST and GraphQL services together seamlessly
+- **Data Transformation**: Transform and manipulate data using built-in functions
+- **Flow Control**: Define complex business logic with conditional branching
+- **State Management**: Model system states and transitions declaratively
+
+Wolf DSL replaces traditional imperative programming with intuitive, readable flows that focus on **what** your system should do rather than **how** to implement it.
+
+## Why Choose Wolf DSL?
+
+### **Performance Optimized**
+The Wolf DSL runtime handles thread management, memory optimization, and async operations automatically - letting you focus on business logic.
+
+### **Declarative Configuration** 
+Define complex service orchestration and data transformation in fewer lines than traditional code.
+
+### **Seamless Integration**
+Built-in support for REST APIs, GraphQL services, and enterprise systems.
+
+### **Developer-Friendly Tooling**
+Rich IDE support with syntax highlighting, validation, and debugging capabilities.
+
+### **Separation of Concerns**
+Business logic stays in Wolf DSL flows while infrastructure concerns are handled by the runtime.
+
+## Quick Example
+
+Here's a simple Wolf DSL flow that demonstrates the core concepts:
+
+```flow
+Schema User {
+  string name
+  string email
+}
+
+value defaultUser -> User {
+  name: "New User"
+  email: "user@example.com"
+}
+
+Service userService method GET as getUserById 
+input User output User {
+  Url -> @Config("api.base.url")
+  Path -> ${"/users/" + defaultUser.name}
+  @Header Accept -> ${"application/json"}
+}
+
+Mapping userTransform input defaultUser output User {
+  User.name = "Transformed: " + defaultUser.name
+  User.email = defaultUser.email
+}
+
+Flow userFlow {
+  Start defaultUser {
+    transition {
+      @Config("api.base.url") != null ? getUserById : userTransform
+    }
+  }
+  getUserById {}
+  userTransform {}
+}
+```
+
+This flow:
+1. Defines a `User` schema structure
+2. Creates default user data  
+3. Conditionally calls a REST service or applies a data transformation
+4. Returns the processed user data
+
+## Getting Started
+
+Ready to start building with Wolf DSL? Here's what you need:
+
+1. **[Quickstart Tutorial](/getting-started/quickstart)** - Build your first Wolf DSL flow in minutes
+2. **[Language Reference](/language/overview)** - Learn the syntax and core concepts  
+3. **[Examples & Recipes](/examples)** - Practical patterns for common use cases
+4. **[Installation Guide](/getting-started/installation)** - Set up your development environment
+
+## Core Concepts
+
+Wolf DSL is built around several key node types:
+
+- **[Flow](/language/nodes/flow)** - The main execution entry point
+- **[Service](/language/nodes/service)** - REST and GraphQL API calls
+- **[Mapping](/language/nodes/mapping)** - Data transformation logic
+- **[Schema](/language/nodes/schema)** - Data structure definitions
+- **[Value](/language/nodes/value)** - Static and dynamic data values
+
+## Community & Support
+
+- **Documentation**: You're in the right place!
+- **Issues & Feature Requests**: [GitHub Issues](https://github.com/wolf-DSL/wolf-dsl-docs/issues)
+- **Contributing**: [Contributing Guide](https://github.com/wolf-DSL/wolf-dsl-docs/blob/main/CONTRIBUTING.md)
+
+---
+
+*Wolf DSL helps you build maintainable, scalable service orchestration flows with the power of declarative programming.*

@@ -1,0 +1,449 @@
+---
+title: Expressions
+description: Understanding Wolf DSL's powerful expression system for data manipulation and business logic
+sidebar_position: 1
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Wolf DSL Expressions
+
+Expressions are the heart of data manipulation in Wolf DSL. They enable dynamic data processing, conditional logic, and complex transformations within **[Mapping nodes](/language/nodes/mapping)**, **[Flow transitions](/language/nodes/flow)**, and **[Value nodes](/language/nodes/value)**.
+
+## What are Expressions?
+
+Expressions are declarative statements for data transformation, conditional logic, calculations, and data access.
+
+## Expression Categories
+
+### **[Arithmetic Expressions](arithmetic)**
+Mathematical operations and calculations:
+
+```flow
+result = price * quantity + tax
+total = subtotal - discountAmount  
+average = sum / count
+```
+
+### **Boolean Expressions**
+Logical operations and boolean algebra:
+
+```flow
+isValid = hasEmail && hasPassword && isActive
+canProceed = isAuthorized || isAdmin
+isDisabled = !isEnabled
+```
+
+### **Conditional Expressions**
+Comparisons, ternary operations, and membership tests:
+
+```flow
+// Comparisons
+isAdult = age >= 18
+isPremium = accountType == "premium"
+
+// Ternary
+status = if isActive then "enabled" else "disabled"
+price = if isPremium then regularPrice * 0.8 else regularPrice
+
+// Membership
+isValidStatus = status in ["active", "pending", "trial"]
+```
+
+## Expression Usage Contexts
+
+### In Mapping Transformations
+```flow
+Schema OrderProcessing {
+    number quantity
+    number unitPrice
+    number taxRate
+    number total
+    string status
+}
+
+Mapping calculateOrder input OrderData output OrderProcessing {
+    // Arithmetic expressions
+    OrderProcessing.total = (OrderData.quantity * OrderData.unitPrice) * (1 + OrderData.taxRate)
+    
+    // Conditional expressions  
+    OrderProcessing.status = if OrderProcessing.total > 100 
+                            then "priority" 
+                            else "standard"
+}
+```
+
+### In Flow Transitions
+```flow
+Flow orderProcessingFlow {
+    Start validateOrder {
+        transition {
+            // Boolean expressions control flow
+            order.isValid && order.total > 0 ? processPayment : handleError
+            
+            // Complex conditions
+            (customer.isPremium || order.total > 500) && inventory.available ? 
+                expediteOrder : 
+                standardProcessing
+        }
+    }
+    
+    processPayment {}
+    expediteOrder {}
+    standardProcessing {}
+    handleError {}
+}
+```
+
+### In Value Definitions
+```flow
+Schema DynamicConfig {
+    string environment
+    number maxRetries
+    boolean debugMode
+    string apiUrl
+}
+
+value appConfig -> DynamicConfig {
+    environment: ${if isDevelopment then "dev" else "prod"}
+    maxRetries: ${if environment == "prod" then 5 else 1}
+    debugMode: ${environment != "prod" && enableDebugging}
+    apiUrl: ${baseUrl + "/" + version + "/api"}
+}
+```
+
+### With Function Calls
+```flow
+Schema UserProcessing {
+    string firstName
+    string lastName
+    string email
+    string fullName
+    boolean hasValidEmail
+    number accountAge
+}
+
+Mapping processUser input UserData output UserProcessing {
+    // Combining functions with expressions
+    UserProcessing.fullName = upperCase(UserData.firstName) + " " + upperCase(UserData.lastName)
+    
+    // Boolean expressions with functions
+    UserProcessing.hasValidEmail = contains(UserData.email, "@") && length(UserData.email) > 5
+    
+    // Arithmetic with functions
+    UserProcessing.accountAge = dayDifference(
+        UserData.registrationDate, 
+        currentDate("yyyy-MM-dd"), 
+        "yyyy-MM-dd"
+    ) / 365
+}
+```
+
+## Expression Types and Literals
+
+### Primitive Values
+
+<Tabs>
+<TabItem value="strings" label="Strings">
+
+```flow
+// String literals
+greeting = "Hello, World!"
+path = "/api/v1/users" 
+template = "User {name} has {count} items"
+
+// String expressions
+fullPath = basePath + "/" + resourcePath
+message = "Welcome " + userName + "!"
+```
+
+</TabItem>
+<TabItem value="numbers" label="Numbers">
+
+```flow
+// Integer literals
+count = 42
+year = 2023
+negativeValue = -100
+
+// Decimal literals
+price = 29.99
+rate = 0.085
+percentage = 12.5
+
+// Number expressions
+total = price * quantity
+average = sum / count
+```
+
+</TabItem>
+<TabItem value="booleans" label="Booleans">
+
+```flow
+// Boolean literals
+isActive = true
+isDisabled = false
+
+// Boolean expressions  
+canAccess = isAuthenticated && hasPermission
+shouldNotify = isImportant || isUrgent
+isInactive = !isActive
+```
+
+</TabItem>
+<TabItem value="null" label="Null">
+
+```flow
+// Null literal
+defaultValue = null
+optionalField = null
+
+// Null checks
+hasValue = field != null
+safeValue = if data != null then data.value else "default"
+```
+
+</TabItem>
+</Tabs>
+
+## Variable References
+
+### Direct Field Access
+```flow
+Schema UserProfile {
+    string name
+    number age
+    address {
+        string street
+        string city
+        string zipCode
+    }
+}
+
+Mapping accessFields input UserProfile output DisplayInfo {
+    // Direct field access
+    DisplayInfo.userName = UserProfile.name
+    DisplayInfo.userAge = UserProfile.age
+    
+    // Nested field access
+    DisplayInfo.userCity = UserProfile.address.city
+    DisplayInfo.fullAddress = UserProfile.address.street + ", " + UserProfile.address.city
+}
+```
+
+### Array Access
+```flow
+Schema DataProcessor {
+    number[] values
+    item[] items
+}
+
+Mapping processArrays input DataProcessor output Results {
+    // Array element access
+    Results.firstValue = DataProcessor.values[0]
+    Results.lastValue = DataProcessor.values[-1]  // Last element
+    Results.thirdItem = DataProcessor.items[2]
+    
+    // Array expressions
+    Results.hasValues = length(DataProcessor.values) > 0
+    Results.totalItems = length(DataProcessor.items)
+}
+```
+
+### Scoped References
+```flow
+Schema ContextualData {
+    string globalValue
+    items [
+        string name
+        number value
+    ]
+}
+
+Mapping useScopes input ContextualData as global output ProcessedData {
+    // Global scope reference
+    ProcessedData.header = global.globalValue
+    
+    // Local scope in mapping
+    ProcessedData.filteredItems = filter(
+        global.items,
+        // Within filter, 'item' is local scope, use :: for global
+        item -> item.value > 100 && contains(item.name, ::global.globalValue)
+    )
+}
+```
+
+## Expression Evaluation Rules
+
+### 1. **Operator Precedence**
+```flow
+// Mathematical precedence (like standard algebra)
+result = 2 + 3 * 4        // = 14 (not 20)
+result = (2 + 3) * 4      // = 20 (explicit grouping)
+result = 10 / 2 * 3       // = 15 (left-to-right for same precedence)
+
+// Boolean precedence
+result = true || false && false    // = true (AND before OR)  
+result = (true || false) && false  // = false (explicit grouping)
+```
+
+### 2. **Type Coercion**
+```flow
+// Automatic string conversion
+message = "Count: " + 42           // = "Count: 42"
+path = "/users/" + userId          // = "/users/123"
+
+// Numeric operations
+total = "10" + 5                   // = 15 (string to number)
+result = "3.14" * 2                // = 6.28
+```
+
+### 3. **Null Handling**
+```flow
+// Safe null operations
+result = null + 5                  // = 5
+text = null + "default"            // = "default"
+flag = null && true                // = false
+flag = null || true                // = true
+
+// Explicit null checks
+value = if data != null then data.field else "fallback"
+```
+
+## Advanced Expression Patterns
+
+### Complex Conditional Logic
+```flow
+Schema BusinessRules {
+    number orderTotal
+    string customerTier
+    boolean isHoliday
+    number discountRate
+    string shippingSpeed
+}
+
+Mapping applyBusinessRules input OrderData output BusinessRules {
+    // Complex discount calculation
+    BusinessRules.discountRate = if OrderData.customerTier == "platinum"
+        then if OrderData.orderTotal > 1000 then 0.15 else 0.10
+        else if OrderData.customerTier == "gold"  
+        then if OrderData.orderTotal > 500 then 0.08 else 0.05
+        else if OrderData.orderTotal > 200 then 0.03 else 0.0
+    
+    // Multi-condition shipping logic
+    BusinessRules.shippingSpeed = if OrderData.isHoliday && OrderData.orderTotal > 100
+        then "express"
+        else if OrderData.customerTier in ["platinum", "gold"] && OrderData.orderTotal > 50
+        then "priority" 
+        else "standard"
+}
+```
+
+### Function Chaining with Expressions
+```flow
+Schema DataPipeline {
+    string[] rawData
+    string[] processedData
+    string summary
+}
+
+Mapping processDataPipeline input DataPipeline output DataPipeline {
+    // Complex chaining with expressions
+    DataPipeline.processedData = map(
+        filter(
+            DataPipeline.rawData,
+            item -> length(item) > 3 && contains(item, "@")
+        ),
+        item -> upperCase(replace(item, "@", " at "))
+    )
+    
+    // Summary with complex expression
+    DataPipeline.summary = "Processed " + 
+        length(DataPipeline.processedData) + 
+        " out of " + 
+        length(DataPipeline.rawData) + 
+        " items (" + 
+        (length(DataPipeline.processedData) * 100 / length(DataPipeline.rawData)) + 
+        "% success rate)"
+}
+```
+
+### Dynamic Value Construction
+```flow
+Schema DynamicApiCall {
+    string baseUrl
+    string version
+    string resource
+    string queryParams
+    string fullUrl
+}
+
+Mapping buildApiUrl input RequestContext output DynamicApiCall {
+    DynamicApiCall.fullUrl = DynamicApiCall.baseUrl + 
+        "/" + DynamicApiCall.version + 
+        "/" + DynamicApiCall.resource +
+        if length(DynamicApiCall.queryParams) > 0 
+        then "?" + DynamicApiCall.queryParams 
+        else ""
+}
+```
+
+## Best Practices
+
+### 1. **Use Parentheses for Clarity**
+```flow
+//  Good: Clear precedence
+result = (price * quantity) + (tax * rate)
+condition = (isValid && hasPermission) || isAdmin
+
+//  Confusing: Relies on implicit precedence
+result = price * quantity + tax * rate
+condition = isValid && hasPermission || isAdmin
+```
+
+### 2. **Break Complex Expressions**
+```flow
+//  Good: Break into logical steps
+baseAmount = price * quantity
+taxAmount = baseAmount * taxRate  
+total = baseAmount + taxAmount
+
+//  Hard to read: Everything in one expression
+total = (price * quantity) + ((price * quantity) * taxRate)
+```
+
+### 3. **Use Meaningful Variable Names**
+```flow
+//  Good: Descriptive names
+isEligibleForDiscount = customerTier in ["gold", "platinum"] && orderTotal > 100
+finalPrice = if isEligibleForDiscount then basePrice * 0.9 else basePrice
+
+//  Unclear: Generic names
+flag = tier in ["gold", "platinum"] && total > 100
+price = if flag then bp * 0.9 else bp
+```
+
+### 4. **Handle Edge Cases**
+```flow
+//  Good: Safe operations
+averageScore = if length(scores) > 0 
+               then sum(scores, score -> score) / length(scores) 
+               else 0
+
+percentage = if total > 0 then (completed / total) * 100 else 0
+
+//  Risky: No edge case handling
+averageScore = sum(scores, score -> score) / length(scores)  // Division by zero!
+```
+
+## Related Topics
+
+- **[Arithmetic Expressions](arithmetic)** - Mathematical operations and calculations
+- **[Arithmetic Expressions](arithmetic)** - Mathematical operations and calculations
+- **Boolean Expressions** - Logical operations and boolean algebra (covered above)
+- **Conditional Expressions** - Comparisons, ternary, and membership (covered above)
+- **[Functions Reference](/language/functions/)** - Using functions in expressions
+- **[Mapping Node](/language/nodes/mapping)** - Transforming data with expressions
+- **[Flow Node](/language/nodes/flow)** - Controlling flow with conditional expressions
+

@@ -1,0 +1,585 @@
+---
+title: Mapping Node
+description: Transform and manipulate data between different schemas with powerful expressions
+sidebar_position: 3
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Mapping Node
+
+**Mapping nodes** are the data transformation workhorses of Wolf DSL. They take input data, apply transformations using expressions and functions, and produce structured output conforming to target schemas. Mappings enable data manipulation, validation, enrichment, and format conversion.
+
+## Syntax
+
+```flow
+Mapping [mappingName] input [inputSchemas] output [outputSchema] [as outputAlias] {
+    [transformationStatements]
+}
+```
+
+### Parameters
+
+- **`mappingName`**: Identifier for the mapping (used in flows)
+- **`inputSchemas`**: One or more input data sources (schemas or values with aliases)
+- **`outputSchema`**: Target schema for the transformation result
+- **`outputAlias`** *(optional)*: Alternative name for referencing the output
+- **`transformationStatements`**: Instructions for data transformation
+
+## Basic Data Transformation
+
+### Simple Field Mapping
+
+```flow
+Schema PersonInput {
+    string firstName
+    string lastName
+    number age
+}
+
+Schema PersonOutput {
+    string fullName
+    string ageGroup
+    boolean isAdult
+}
+
+value personData -> PersonInput {
+    firstName: "John"
+    lastName: "Doe"
+    age: 25
+}
+
+Mapping personTransform input personData output PersonOutput {
+    PersonOutput.fullName = personData.firstName + " " + personData.lastName
+    PersonOutput.ageGroup = if personData.age < 18 then "minor" else if personData.age < 65 then "adult" else "senior"
+    PersonOutput.isAdult = personData.age >= 18
+}
+```
+
+### Multiple Input Sources
+
+```flow
+Schema Order {
+    string orderId
+    string customerId
+    number totalAmount
+}
+
+Schema Customer {
+    string customerId
+    string name
+    string email
+    string tier
+}
+
+Schema OrderSummary {
+    string orderId
+    string customerName
+    string customerEmail
+    number amount
+    number discountPercent
+    number finalAmount
+}
+
+Mapping createOrderSummary input Order, Customer output OrderSummary {
+    OrderSummary.orderId = Order.orderId
+    OrderSummary.customerName = Customer.name
+    OrderSummary.customerEmail = Customer.email
+    OrderSummary.amount = Order.totalAmount
+    OrderSummary.discountPercent = if Customer.tier == "premium" then 15.0 else if Customer.tier == "gold" then 10.0 else 5.0
+    OrderSummary.finalAmount = Order.totalAmount * (1 - OrderSummary.discountPercent / 100)
+}
+```
+
+## Advanced Transformations
+
+### Collection Processing
+
+```flow
+Schema ProductList {
+    products [
+        string id
+        string name
+        number price
+        boolean isActive
+        string[] categories
+    ]
+}
+
+Schema ProductCatalog {
+    string[] productIds
+    string[] activeProductNames
+    number averagePrice
+    number totalProducts
+    string[] allCategories
+}
+
+Mapping processProducts input ProductList output ProductCatalog {
+    // Extract all product IDs
+    ProductCatalog.productIds = map(ProductList.products, product -> product.id)
+    
+    // Get names of active products only
+    ProductCatalog.activeProductNames = map(
+        filter(ProductList.products, product -> product.isActive == true),
+        product -> product.name
+    )
+    
+    // Calculate average price of active products
+    ProductCatalog.averagePrice = sum(
+        filter(ProductList.products, product -> product.isActive == true),
+        product -> product.price
+    ) / length(filter(ProductList.products, product -> product.isActive == true))
+    
+    // Count total products
+    ProductCatalog.totalProducts = length(ProductList.products)
+    
+    // Flatten all categories and remove duplicates
+    ProductCatalog.allCategories = dedup(
+        concat(
+            map(ProductList.products, product -> product.categories)
+        )
+    )
+}
+```
+
+### Conditional Logic and Branching
+
+```flow
+Schema UserInput {
+    string id
+    string email
+    number age
+    string role
+    boolean isVerified
+    string[] permissions
+}
+
+Schema UserProfile {
+    string userId
+    string displayEmail
+    string accessLevel
+    boolean canLogin
+    string[] effectivePermissions
+    string status
+}
+
+Mapping processUser input UserInput output UserProfile {
+    UserProfile.userId = UserInput.id
+    
+    // Mask email for privacy based on verification status
+    UserProfile.displayEmail = if UserInput.isVerified == true 
+        then UserInput.email 
+        else replace(UserInput.email, "@", "@***")
+    
+    // Determine access level based on role and age
+    UserProfile.accessLevel = if UserInput.role == "admin" 
+        then "full" 
+        else if UserInput.role == "moderator" 
+        then "elevated" 
+        else if UserInput.age >= 18 
+        then "standard" 
+        else "restricted"
+    
+    // Login eligibility check
+    UserProfile.canLogin = UserInput.isVerified == true && 
+                          UserInput.age >= 13 && 
+                          length(UserInput.permissions) > 0
+    
+    // Build effective permissions
+    UserProfile.effectivePermissions = if UserInput.role == "admin" 
+        then concat(UserInput.permissions, ["admin.access", "system.override"])
+        else if UserInput.age < 18
+        then filter(UserInput.permissions, perm -> !contains(perm, "adult"))
+        else UserInput.permissions
+    
+    // Set overall status
+    UserProfile.status = if !UserProfile.canLogin
+        then "restricted"
+        else if UserProfile.accessLevel == "full"
+        then "active.admin"
+        else "active.user"
+}
+```
+
+## Complex Real-World Examples
+
+### E-commerce Order Processing
+
+```flow
+Schema RawOrder {
+    string orderId
+    string customerId
+    items [
+        string productId
+        number quantity
+        number unitPrice
+    ]
+    shipping {
+        string method
+        string address
+    }
+}
+
+Schema Customer {
+    string id
+    string name
+    string tier
+    boolean isPremiumMember
+}
+
+Schema ProcessedOrder {
+    string orderId
+    string customerId
+    string customerName
+    orderSummary {
+        number itemCount
+        number subtotal
+        number discount
+        number shippingCost
+        number tax
+        number total
+    }
+    shipping {
+        string method
+        string address
+        number estimatedDays
+    }
+    metadata {
+        string processedAt
+        boolean requiresReview
+        string[] appliedPromotions
+    }
+}
+
+Mapping processOrder input RawOrder, Customer output ProcessedOrder {
+    ProcessedOrder.orderId = RawOrder.orderId
+    ProcessedOrder.customerId = RawOrder.customerId
+    ProcessedOrder.customerName = Customer.name
+    
+    // Calculate order totals
+    ProcessedOrder.orderSummary.itemCount = length(RawOrder.items)
+    ProcessedOrder.orderSummary.subtotal = sum(RawOrder.items, item -> item.quantity * item.unitPrice)
+    
+    // Apply customer-tier based discount
+    ProcessedOrder.orderSummary.discount = if Customer.tier == "platinum" 
+        then ProcessedOrder.orderSummary.subtotal * 0.20
+        else if Customer.tier == "gold" 
+        then ProcessedOrder.orderSummary.subtotal * 0.15
+        else if Customer.isPremiumMember == true
+        then ProcessedOrder.orderSummary.subtotal * 0.10
+        else 0.00
+    
+    // Calculate shipping cost
+    ProcessedOrder.orderSummary.shippingCost = if ProcessedOrder.orderSummary.subtotal > 50.00 
+        then 0.00  // Free shipping over $50
+        else if RawOrder.shipping.method == "express"
+        then 15.99
+        else 7.99
+    
+    // Calculate tax (8.25% rate)
+    ProcessedOrder.orderSummary.tax = (ProcessedOrder.orderSummary.subtotal - ProcessedOrder.orderSummary.discount) * 0.0825
+    
+    // Final total
+    ProcessedOrder.orderSummary.total = ProcessedOrder.orderSummary.subtotal - 
+                                       ProcessedOrder.orderSummary.discount + 
+                                       ProcessedOrder.orderSummary.shippingCost + 
+                                       ProcessedOrder.orderSummary.tax
+    
+    // Shipping details
+    ProcessedOrder.shipping.method = RawOrder.shipping.method
+    ProcessedOrder.shipping.address = RawOrder.shipping.address
+    ProcessedOrder.shipping.estimatedDays = if RawOrder.shipping.method == "express" 
+        then 1 
+        else if RawOrder.shipping.method == "priority"
+        then 3
+        else 7
+    
+    // Metadata
+    ProcessedOrder.metadata.processedAt = currentDate("yyyy-MM-dd'T'HH:mm:ss'Z'")
+    ProcessedOrder.metadata.requiresReview = ProcessedOrder.orderSummary.total > 1000.00 || 
+                                            ProcessedOrder.orderSummary.itemCount > 20
+    ProcessedOrder.metadata.appliedPromotions = if ProcessedOrder.orderSummary.discount > 0
+        then [Customer.tier + "-tier-discount"]
+        else []
+}
+```
+
+### API Response Normalization
+
+<Tabs>
+<TabItem value="input" label="Input Schemas">
+
+```flow
+Schema ExternalApiResponse {
+    string status_code
+    response_data {
+        user_info {
+            string user_id
+            string first_name
+            string last_name
+            string email_address
+            boolean is_active_user
+        }
+        account_details {
+            string account_type
+            number account_balance
+            string created_date
+        }
+    }
+}
+```
+
+</TabItem>
+<TabItem value="output" label="Output Schema">
+
+```flow
+Schema NormalizedUser {
+    string id
+    personalInfo {
+        string firstName
+        string lastName
+        string email
+    }
+    account {
+        string type
+        number balance
+        string createdAt
+    }
+    status {
+        boolean isActive
+        boolean isValid
+        string normalizedAt
+    }
+}
+```
+
+</TabItem>
+<TabItem value="mapping" label="Mapping Logic">
+
+```flow
+Mapping normalizeApiResponse input ExternalApiResponse output NormalizedUser {
+    // Map user identity
+    NormalizedUser.id = ExternalApiResponse.response_data.user_info.user_id
+    
+    // Transform personal information
+    NormalizedUser.personalInfo.firstName = upperCase(
+        ExternalApiResponse.response_data.user_info.first_name
+    )
+    NormalizedUser.personalInfo.lastName = upperCase(
+        ExternalApiResponse.response_data.user_info.last_name
+    )
+    NormalizedUser.personalInfo.email = lowerCase(
+        ExternalApiResponse.response_data.user_info.email_address
+    )
+    
+    // Process account information
+    NormalizedUser.account.type = ExternalApiResponse.response_data.account_details.account_type
+    NormalizedUser.account.balance = ExternalApiResponse.response_data.account_details.account_balance
+    NormalizedUser.account.createdAt = dateFormat(
+        "yyyy-MM-dd", 
+        "yyyy-MM-dd'T'HH:mm:ss'Z'",
+        ExternalApiResponse.response_data.account_details.created_date
+    )
+    
+    // Set status information
+    NormalizedUser.status.isActive = ExternalApiResponse.response_data.user_info.is_active_user
+    NormalizedUser.status.isValid = ExternalApiResponse.status_code == "200" && 
+                                   NormalizedUser.personalInfo.email != "" &&
+                                   NormalizedUser.id != ""
+    NormalizedUser.status.normalizedAt = currentDate("yyyy-MM-dd'T'HH:mm:ss'Z'")
+}
+```
+
+</TabItem>
+</Tabs>
+
+## Statement Types
+
+### Variable Assignment
+Basic field assignment:
+```flow
+outputSchema.field = inputSchema.sourceField + " processed"
+```
+
+### Conditional Assignment  
+Using ternary expressions:
+```flow
+outputSchema.status = if inputSchema.age >= 18 then "adult" else "minor"
+```
+
+### Range-based Assignment
+Working with array ranges:
+```flow
+outputSchema.recentItems = inputSchema.items{0..5}  // First 5 items
+outputSchema.lastItems = inputSchema.items{-3..}    // Last 3 items
+```
+
+### Conditional Blocks
+Complex conditional logic:
+```flow
+when (inputSchema.type == "premium") {
+    outputSchema.discount = inputSchema.amount * 0.15
+    outputSchema.tier = "premium"
+    outputSchema.features = ["feature1", "feature2", "feature3"]
+}
+```
+
+## Built-in Functions in Mappings
+
+### String Functions
+```flow
+Mapping stringOperations input TextData output ProcessedText {
+    ProcessedText.uppercased = upperCase(TextData.text)
+    ProcessedText.trimmed = replace(TextData.text, " ", "")
+    ProcessedText.parts = split(TextData.text, ",")
+    ProcessedText.joined = join(ProcessedText.parts, " | ")
+    ProcessedText.hasKeyword = contains(TextData.text, "important")
+}
+```
+
+### Collection Functions  
+```flow
+Mapping collectionOperations input ListData output ProcessedList {
+    ProcessedList.itemCount = length(ListData.items)
+    ProcessedList.activeItems = filter(ListData.items, item -> item.active == true)
+    ProcessedList.itemNames = map(ListData.items, item -> item.name)
+    ProcessedList.sortedItems = sort(ListData.items, item.priority)
+    ProcessedList.uniqueIds = dedup(map(ListData.items, item -> item.id))
+}
+```
+
+### Date Functions
+```flow
+Mapping dateOperations input DateData output ProcessedDate {
+    ProcessedDate.formatted = dateFormat("ms", "yyyy-MM-dd", DateData.timestamp)
+    ProcessedDate.daysDifference = dayDifference(DateData.startDate, DateData.endDate, "yyyy-MM-dd")
+    ProcessedDate.futureDate = addToDate(DateData.currentDate, "yyyy-MM-dd", 30, "Days")
+    ProcessedDate.now = currentDate("yyyy-MM-dd'T'HH:mm:ss'Z'")
+}
+```
+
+## Best Practices
+
+### 1. Single Responsibility
+Each mapping should have one clear purpose:
+
+```flow
+//  Good: Focused on user profile transformation
+Mapping transformUserProfile input RawUserData output UserProfile {
+    UserProfile.name = RawUserData.firstName + " " + RawUserData.lastName
+    UserProfile.email = lowerCase(RawUserData.emailAddress)
+    UserProfile.isVerified = RawUserData.verificationStatus == "verified"
+}
+
+//  Good: Focused on order pricing
+Mapping calculateOrderPricing input Order, Customer output PricedOrder {
+    PricedOrder.subtotal = sum(Order.items, item -> item.price * item.quantity)
+    PricedOrder.discount = Customer.tier == "premium" ? PricedOrder.subtotal * 0.1 : 0
+    PricedOrder.total = PricedOrder.subtotal - PricedOrder.discount
+}
+```
+
+### 2. Meaningful Field Names
+Use descriptive names for output fields:
+
+```flow
+//  Good: Clear field names
+Mapping enrichUserData input User output EnrichedUser {
+    EnrichedUser.displayName = User.firstName + " " + User.lastName
+    EnrichedUser.accountStatus = if User.isActive then "active" else "inactive"
+    EnrichedUser.membershipLevel = determineMembershipLevel(User.pointsBalance)
+}
+
+//  Avoid: Generic field names
+Mapping processData input User output Result {
+    Result.field1 = User.firstName + " " + User.lastName
+    Result.flag = if User.isActive then "active" else "inactive"
+    Result.value = determineMembershipLevel(User.pointsBalance)
+}
+```
+
+### 3. Handle Edge Cases
+Plan for missing or invalid data:
+
+```flow
+Mapping safeTransform input UserInput output UserOutput {
+    // Handle potential null/empty values
+    UserOutput.name = if UserInput.name != "" && UserInput.name != null 
+        then UserInput.name 
+        else "Unknown User"
+    
+    // Validate numeric ranges
+    UserOutput.age = if UserInput.age >= 0 && UserInput.age <= 150 
+        then UserInput.age 
+        else 0
+    
+    // Safe email processing
+    UserOutput.email = if contains(UserInput.email, "@") 
+        then lowerCase(UserInput.email)
+        else "invalid@example.com"
+}
+```
+
+### 4. Use Intermediate Variables for Complex Logic
+Break complex expressions into readable parts:
+
+```flow
+Mapping complexCalculation input OrderData output PricingResult {
+    // Calculate base amounts first
+    baseSubtotal = sum(OrderData.items, item -> item.price * item.quantity)
+    volumeDiscount = if length(OrderData.items) > 10 then baseSubtotal * 0.05 else 0
+    memberDiscount = if OrderData.customerTier == "premium" then baseSubtotal * 0.1 else 0
+    
+    // Then use them in final calculations
+    PricingResult.subtotal = baseSubtotal
+    PricingResult.totalDiscount = volumeDiscount + memberDiscount
+    PricingResult.finalAmount = baseSubtotal - PricingResult.totalDiscount
+}
+```
+
+### 5. Document Complex Transformations
+Add comments for business logic:
+
+```flow
+Mapping calculateCommission input SalesData output CommissionResult {
+    // Commission structure: 5% base, +2% if sales > $10K, +1% if tenure > 2 years
+    baseCommissionRate = 0.05
+    volumeBonus = if SalesData.totalSales > 10000 then 0.02 else 0
+    tenureBonus = if SalesData.yearsOfService > 2 then 0.01 else 0
+    
+    CommissionResult.rate = baseCommissionRate + volumeBonus + tenureBonus
+    CommissionResult.amount = SalesData.totalSales * CommissionResult.rate
+}
+```
+
+## Error Handling
+
+### Graceful Degradation
+```flow
+Mapping resilientTransform input ApiResponse output ProcessedData {
+    ProcessedData.status = if ApiResponse.statusCode == 200 
+        then "success" 
+        else "error"
+    
+    ProcessedData.data = if ApiResponse.statusCode == 200 && ApiResponse.data != null
+        then ApiResponse.data
+        else {}
+    
+    ProcessedData.errorMessage = if ApiResponse.statusCode != 200
+        then "API returned status: " + ApiResponse.statusCode
+        else ""
+}
+```
+
+## Related Topics
+
+- **[Schema Node](schema)** - Defining input and output data structures
+- **[Value Node](value)** - Creating input data for mappings
+- **[Expression System](/language/expressions)** - Writing transformation logic
+- **[Functions Reference](/language/functions)** - Available functions for data manipulation
+- **[Flow Node](flow)** - Orchestrating mappings in workflows
+
+---
+
+*Mapping nodes are the data transformation engines of Wolf DSL, enabling powerful ETL operations with declarative simplicity.*

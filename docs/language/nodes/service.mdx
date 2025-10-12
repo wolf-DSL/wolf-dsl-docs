@@ -1,0 +1,467 @@
+---
+title: Service Node
+description: Make HTTP REST and GraphQL API calls with comprehensive configuration options
+sidebar_position: 2
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Service Node
+
+The **Service node** enables easy integration with REST APIs and web services. It handles all the mechanics of creating requests, making service calls, and processing responses, letting you focus on business logic rather than HTTP plumbing.
+
+## Syntax
+
+```flow
+[synchronous] [verbose] Service [serviceName] as [alias] 
+method [httpMethod] [foreach iterator] 
+[input inputSchema] [output outputSchema] {
+    Url -> @Config([baseUrlProperty])
+    Path -> ${[pathExpression]}
+    Timeout -> ${[timeoutMs]}
+    Retry -> ${[retryCount]}
+    [pathParams]
+    [headers]
+    [queryParams]
+    [body]
+}
+```
+
+### Parameters
+
+#### Modifiers
+- **`synchronous`** *(optional)*: Makes the service call blocking. By default, services are asynchronous
+- **`verbose`** *(optional)*: Adds `__metadata` with HTTP status and response details to the output
+
+#### Core Properties  
+- **`serviceName`**: Identifier for the service type (use "service" for generic REST calls)
+- **`alias`**: Reference name used in flows - enables multiple calls to the same service
+- **`httpMethod`**: HTTP method (`GET`, `POST`, `PUT`, `DELETE`)
+- **`foreach`** *(optional)*: Iterator for batch operations
+- **`input`** *(optional)*: Input schema for request data
+- **`output`** *(optional)*: Output schema for response filtering and validation
+
+#### Configuration
+- **`baseUrlProperty`**: Configuration property containing the service base URL
+- **`pathExpression`**: Dynamic path construction using expressions
+- **`timeoutMs`**: Request timeout in milliseconds
+- **`retryCount`**: Number of retry attempts on failure
+
+#### Request Parameters
+- **`pathParams`**: Dynamic path parameter substitution
+- **`headers`**: Custom HTTP headers
+- **`queryParams`**: URL query parameters
+- **`body`**: Request body for POST/PUT operations
+
+## Basic Examples
+
+### Simple GET Request
+
+```flow
+Schema User {
+    string id
+    string name
+    string email
+}
+
+Service userService method GET as getUserById 
+input UserIdRequest output User {
+    Url -> @Config("api.base.url")
+    Path -> ${"/users/" + UserIdRequest.id}
+    Timeout -> ${5000}
+    @Header Accept -> ${"application/json"}
+}
+```
+
+### POST Request with Body
+
+```flow
+Schema CreateUserRequest {
+    string name
+    string email
+    string department
+}
+
+Schema UserResponse {
+    string id
+    string name
+    string email
+    string status
+}
+
+Service userService method POST as createUser
+input CreateUserRequest output UserResponse {
+    Url -> @Config("api.base.url")
+    Path -> ${"/users"}
+    Timeout -> ${10000}
+    Retry -> ${3}
+    @Header Content-Type -> ${"application/json"}
+    @Header Authorization -> ${"Bearer " + @Config("api.token")}
+    @Body -> ${CreateUserRequest}
+}
+```
+
+## Advanced Configuration
+
+### Path Parameters
+
+Use `@PathParam` for dynamic URL segments:
+
+```flow
+Service orderService method GET as getOrderById
+input OrderRequest output Order {
+    Url -> @Config("orders.api.url")
+    Path -> ${"/orders/{orderId}/items/{itemId}"}
+    @PathParam orderId -> ${OrderRequest.orderId}
+    @PathParam itemId -> ${OrderRequest.itemId}
+    @Header Authorization -> ${"Bearer " + @Config("api.token")}
+}
+```
+
+### Query Parameters
+
+Add URL query parameters with `@Query`:
+
+```flow
+Service searchService method GET as searchProducts
+input SearchRequest output SearchResults {
+    Url -> @Config("search.api.url")
+    Path -> ${"/search"}
+    @Query q -> ${SearchRequest.searchTerm}
+    @Query category -> ${SearchRequest.category}
+    @Query limit -> ${SearchRequest.maxResults}
+    @Query sort -> ${"relevance"}
+}
+```
+
+### Custom Headers
+
+Add authentication and custom headers:
+
+```flow
+Service paymentService method POST as processPayment
+input PaymentRequest output PaymentResponse {
+    Url -> @Config("payment.api.url")
+    Path -> ${"/payments"}
+    Timeout -> ${30000}
+    Retry -> ${2}
+    @Header Content-Type -> ${"application/json"}
+    @Header Authorization -> ${"Bearer " + @Config("payment.api.token")}
+    @Header Idempotency-Key -> ${uuid()}
+    @Header X-Request-ID -> ${PaymentRequest.requestId}
+    @Body -> ${PaymentRequest}
+}
+```
+
+## Service Modifiers
+
+### Synchronous Services
+
+By default, services are asynchronous (non-blocking). Use `synchronous` for blocking calls:
+
+<Tabs>
+<TabItem value="async" label="Asynchronous (Default)">
+
+```flow
+// Flow continues immediately, service call happens in background
+Service notificationService method POST as sendNotification {
+    Url -> @Config("notification.api.url")
+    Path -> ${"/notifications"}
+    @Body -> ${notificationData}
+}
+```
+
+</TabItem>
+<TabItem value="sync" label="Synchronous">
+
+```flow
+// Flow waits for service response before continuing
+synchronous Service userService method GET as getUserProfile {
+    Url -> @Config("user.api.url") 
+    Path -> ${"/profile/" + userId}
+}
+```
+
+</TabItem>
+</Tabs>
+
+### Verbose Mode
+
+Enable verbose mode to get HTTP metadata in the response:
+
+```flow
+verbose Service diagnosticService method GET as getHealth
+output HealthResponse {
+    Url -> @Config("service.health.url")
+    Path -> ${"/health"}
+}
+```
+
+**Output with verbose mode:**
+```json
+{
+    "status": "healthy",
+    "uptime": 12345,
+    "__metadata": {
+        "httpStatus": 200,
+        "responseTime": 145,
+        "contentType": "application/json"
+    }
+}
+```
+
+## Error Handling & Resilience
+
+### Retry Configuration
+
+```flow
+Service unreliableService method GET as fetchData
+input DataRequest output DataResponse {
+    Url -> @Config("external.api.url")
+    Path -> ${"/data/" + DataRequest.id}
+    Timeout -> ${5000}
+    Retry -> ${3}  // Retry up to 3 times
+    @Header Accept -> ${"application/json"}
+}
+```
+
+### Timeout Management
+
+```flow
+Service slowService method GET as getLargeDataset
+output LargeDataset {
+    Url -> @Config("data.warehouse.url")
+    Path -> ${"/datasets/large"}
+    Timeout -> ${60000}  // 60 second timeout
+    Retry -> ${1}
+}
+```
+
+## Real-World Examples
+
+### User Authentication Service
+
+```flow
+Schema LoginRequest {
+    string username
+    string password
+    string clientId
+}
+
+Schema AuthResponse {
+    string accessToken
+    string refreshToken
+    number expiresIn
+    string tokenType
+}
+
+synchronous Service authService method POST as authenticateUser
+input LoginRequest output AuthResponse {
+    Url -> @Config("auth.service.url")
+    Path -> ${"/oauth/token"}
+    Timeout -> ${10000}
+    Retry -> ${2}
+    @Header Content-Type -> ${"application/x-www-form-urlencoded"}
+    @Header Authorization -> ${"Basic " + @Config("client.credentials")}
+    @Body -> ${
+        "grant_type=password" +
+        "&username=" + LoginRequest.username +
+        "&password=" + LoginRequest.password +
+        "&client_id=" + LoginRequest.clientId
+    }
+}
+```
+
+### RESTful CRUD Operations
+
+<Tabs>
+<TabItem value="create" label="Create">
+
+```flow
+Service userService method POST as createUser
+input CreateUserRequest output UserResponse {
+    Url -> @Config("api.base.url")
+    Path -> ${"/api/v1/users"}
+    @Header Content-Type -> ${"application/json"}
+    @Header Authorization -> ${"Bearer " + @Config("api.token")}
+    @Body -> ${CreateUserRequest}
+}
+```
+
+</TabItem>
+<TabItem value="read" label="Read">
+
+```flow
+Service userService method GET as getUserById
+input UserIdRequest output UserResponse {
+    Url -> @Config("api.base.url")
+    Path -> ${"/api/v1/users/{id}"}
+    @PathParam id -> ${UserIdRequest.userId}
+    @Header Authorization -> ${"Bearer " + @Config("api.token")}
+}
+```
+
+</TabItem>
+<TabItem value="update" label="Update">
+
+```flow
+Service userService method PUT as updateUser
+input UpdateUserRequest output UserResponse {
+    Url -> @Config("api.base.url")
+    Path -> ${"/api/v1/users/{id}"}
+    @PathParam id -> ${UpdateUserRequest.userId}
+    @Header Content-Type -> ${"application/json"}
+    @Header Authorization -> ${"Bearer " + @Config("api.token")}
+    @Body -> ${UpdateUserRequest.userData}
+}
+```
+
+</TabItem>
+<TabItem value="delete" label="Delete">
+
+```flow
+Service userService method DELETE as deleteUser
+input DeleteUserRequest {
+    Url -> @Config("api.base.url")
+    Path -> ${"/api/v1/users/{id}"}
+    @PathParam id -> ${DeleteUserRequest.userId}
+    @Header Authorization -> ${"Bearer " + @Config("api.token")}
+}
+```
+
+</TabItem>
+</Tabs>
+
+### Microservice Communication
+
+```flow
+Schema OrderProcessingRequest {
+    string orderId
+    string customerId
+    OrderItem[] items
+}
+
+Schema ProcessingResult {
+    string orderId
+    string status
+    PaymentResult payment
+    InventoryResult inventory
+    ShippingResult shipping
+}
+
+// Parallel service calls for order processing
+Service paymentService method POST as processPayment
+input OrderProcessingRequest output PaymentResult {
+    Url -> @Config("payment.service.url")
+    Path -> ${"/payments"}
+    @Header Content-Type -> ${"application/json"}
+    @Body -> ${OrderProcessingRequest}
+}
+
+Service inventoryService method POST as checkInventory  
+input OrderProcessingRequest output InventoryResult {
+    Url -> @Config("inventory.service.url")
+    Path -> ${"/inventory/check"}
+    @Header Content-Type -> ${"application/json"}
+    @Body -> ${OrderProcessingRequest.items}
+}
+
+Service shippingService method POST as calculateShipping
+input OrderProcessingRequest output ShippingResult {
+    Url -> @Config("shipping.service.url") 
+    Path -> ${"/shipping/calculate"}
+    @Header Content-Type -> ${"application/json"}
+    @Body -> ${OrderProcessingRequest}
+}
+```
+
+## Best Practices
+
+### 1. Use Configuration for URLs
+Always externalize service URLs:
+
+```flow
+//  Good: Configurable URLs
+Service apiService method GET as getData {
+    Url -> @Config("external.api.url")
+    Path -> ${"/data"}
+}
+
+//  Avoid: Hardcoded URLs
+Service apiService method GET as getData {
+    Url -> "https://hardcoded-api.com"
+    Path -> ${"/data"}
+}
+```
+
+### 2. Set Appropriate Timeouts
+Configure timeouts based on expected response times:
+
+```flow
+//  Good: Reasonable timeouts
+Service quickLookup method GET as getReference {
+    Timeout -> ${2000}  // Quick lookup: 2 seconds
+}
+
+Service heavyProcessing method POST as processLargeDataset {
+    Timeout -> ${300000}  // Heavy processing: 5 minutes
+}
+```
+
+### 3. Include Retry Logic
+Add retries for resilience:
+
+```flow
+//  Good: Retry configuration
+Service externalService method GET as fetchCriticalData {
+    Timeout -> ${5000}
+    Retry -> ${3}  // Retry 3 times before failing
+}
+```
+
+### 4. Use Meaningful Aliases
+Choose descriptive aliases for service references:
+
+```flow
+//  Good: Descriptive aliases
+Service userService method GET as getCurrentUserProfile
+Service userService method PUT as updateUserPreferences
+
+//  Avoid: Generic aliases
+Service userService method GET as userSvc1
+Service userService method PUT as userSvc2
+```
+
+### 5. Structured Error Handling
+Plan for service failures in your flows:
+
+```flow
+Flow resilientServiceFlow {
+    Start request {
+        transition {
+            @Config("fallback.enabled") == "true" ? primaryService : fallbackService
+        }
+    }
+    
+    primaryService {
+        // Handle primary service response or failure
+    }
+    
+    fallbackService {
+        // Fallback logic when primary service is unavailable
+    }
+}
+```
+
+## Related Topics
+
+- **[Language Grammar](/language/grammar)** - GraphQL service syntax reference
+- **[Flow Node](flow)** - Orchestrating service calls in workflows  
+- **[Mapping Node](mapping)** - Transforming service request/response data
+- **[Expression System](/language/expressions)** - Dynamic request construction
+- **[Installation Guide](/getting-started/installation)** - Managing service URLs and credentials
+
+---
+
+*Service nodes make HTTP integration effortless, handling all the low-level details so you can focus on business logic and data flow.*
