@@ -36,18 +36,18 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: docs/website/package-lock.json
+          cache-dependency-path: website/package-lock.json
 
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v4
         
       - name: Install dependencies
-        working-directory: docs/website
+        working-directory: website
         run: npm ci
 
       - name: Build documentation
-        working-directory: docs/website
+        working-directory: website
         run: npm run build
         env:
           DOCUSAURUS_BASE_URL: ${{ steps.pages.outputs.base_path }}/
@@ -55,7 +55,7 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/website/build
+          path: website/build
 
   # Lint and validation job  
   validate:
@@ -70,7 +70,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
-        working-directory: docs/website
+        working-directory: website
         run: npm ci
 
       - name: Lint Markdown files
@@ -79,7 +79,7 @@ jobs:
             --config .markdownlint.json || true
 
       - name: Check links
-        working-directory: docs/website
+        working-directory: website
         run: |
           npm run build
           # Install link checker
