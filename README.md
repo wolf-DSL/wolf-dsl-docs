@@ -38,14 +38,13 @@ Flow userFlow {
 ## Local Development
 
 ### Prerequisites
-- Node.js 18+
+- Node.js 20+
 - npm or yarn
 
 ### Setup
 ```bash
 git clone https://github.com/wolf-DSL/wolf-dsl-docs.git
-cd wolf-dsl-docs
-cd website
+cd wolf-dsl-docs/website
 npm install
 ```
 
@@ -53,43 +52,16 @@ npm install
 ```bash
 npm start
 ```
-Documentation will be available at `http://localhost:3000`
+Visit `http://localhost:3000/wolf-dsl-docs/`
 
 ### Build for Production
 ```bash
 npm run build
 ```
 
-## Contributing to Documentation
+## Contributing
 
-1. **Fork this repository**
-2. **Create a feature branch**: `git checkout -b docs/improve-examples`
-3. **Make your changes** to files in the `docs/` directory
-4. **Test locally**: `npm start` to preview changes
-5. **Submit a pull request**
-
-### Documentation Structure
-
-```
-wolf-dsl-docs/
-├── docs/                    # Documentation content (MDX files)
-│   ├── getting-started/    # Tutorials and setup
-│   ├── language/           # Language reference
-│   ├── examples/           # Practical examples
-│   └── advanced/           # Best practices and guides
-├── website/                # Docusaurus configuration
-│   ├── docusaurus.config.ts
-│   ├── sidebars.ts
-│   └── src/css/custom.css
-└── .github/workflows/      # CI/CD automation
-```
-
-## Content Guidelines
-
-- **Be concise**: Focus on practical implementation
-- **Include examples**: Show real-world usage patterns
-- **Test examples**: Ensure all code examples are valid Wolf DSL
-- **Cross-reference**: Link related concepts appropriately
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on contributing to this documentation.
 
 ## Support
 
